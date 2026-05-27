@@ -1021,3 +1021,46 @@ textarea:focus {
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
+
+/* App Usage Guide and Privacy Cards Styling */
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--primary-emerald-glow);
+  border: 1px solid var(--primary-emerald);
+  color: var(--primary-emerald);
+  font-size: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.usage-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.usage-steps li {
+  font-family: var(--font-bangla);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+}
+.usage-steps li span {
+  flex: 1;
+}
+.privacy-card {
+  border-left: 3px solid var(--primary-gold);
+}
+.privacy-text {
+  font-family: var(--font-bangla);
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-size: 0.8rem;
+}
