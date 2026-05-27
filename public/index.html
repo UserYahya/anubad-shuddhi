@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অনুবাদ শুদ্ধি (Anubad Shuddhi) - এআই-চালিত বাংলা উইকিপিডিয়া অনুবাদ পরিমার্জক</title>
+    <!-- Google Fonts: Inter for UI & Hind Siliguri for elegant Bangla rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Premium Glowing Background Elements -->
+    <div class="glow-bg">
+        <div class="glow-circle green"></div>
+        <div class="glow-circle gold"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>অনুবাদ শুদ্ধি <span>(Anubad Shuddhi)</span></h1>
+                    <p>উইকিপিডিয়া অনুবাদ পরিমার্জন সহায়ক</p>
+                </div>
+            </div>
+
+            <!-- Header Actions / User Status -->
+            <div class="header-actions">
+                <!-- Gemini Key Status Indicator -->
+                <div class="status-pill key-status" id="keyStatusBtn" title="Gemini API Key Settings">
+                    <span class="status-dot red" id="keyDot"></span>
+                    <i class="fa-solid fa-key"></i>
+                    <span id="keyStatusText">Gemini কী নেই</span>
+                </div>
+
+                <!-- Wiki Auth State -->
+                <div class="auth-section" id="authSection">
+                    <a href="/auth/mediawiki" class="btn btn-wiki-login" id="wikiLoginBtn">
+                        <i class="fa-brands fa-wikipedia-w"></i>
+                        <span>লগইন করুন</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout Split -->
+        <main class="app-main">
+            
+            <!-- Sidebar Settings & Suggestions -->
+            <aside class="app-sidebar">
+                
+                <!-- Gemini Key Settings Drawer (Collapsible Card) -->
+                <div class="card settings-card" id="settingsCard">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-gears text-emerald"></i> কনফিগারেশন</h3>
+                        <span class="toggle-btn" id="closeSettings"><i class="fa-solid fa-circle-xmark"></i></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="activeKeyContainer" class="active-key-badge hidden">
+                            <span>সক্রিয় কী:</span>
+                            <code id="activeKeyDisplay"></code>
+                        </div>
+                        <div class="form-group">
+                            <label for="geminiKeyInput">Gemini API Key</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="geminiKeyInput" placeholder="AIzaSy... কী পেস্ট করুন" autocomplete="off">
+                                <button type="button" class="btn-toggle-visibility" id="toggleKeyVisibility">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="help-text">আপনার কীটি সাময়িকভাবে সার্ভার সেশনে সংরক্ষিত থাকবে। কোনো ডাটাবেজে জমা হবে না।</small>
+                        </div>
+                        <div class="form-group" id="modelSelectGroup">
+                            <label for="geminiModelSelect">Gemini Model (এআই মডেল)</label>
+                            <select id="geminiModelSelect" class="form-select">
+                                <option value="gemini-3.5-flash">gemini-3.5-flash (ডিফল্ট)</option>
+                                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                            </select>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="btn btn-emerald btn-sm" id="saveKeyBtn">কী সংরক্ষণ করুন</button>
+                            <button class="btn btn-outline btn-sm hidden" id="deleteKeyBtn">মুছে ফেলুন</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Articles Panel -->
+                <div class="card suggestion-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-lightbulb text-gold"></i> নিরীক্ষণযোগ্য নিবন্ধসমূহ</h3>
+                        <button class="btn-refresh" id="refreshSuggestions" title="তালিকা রিফ্রেশ করুন">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <p class="section-desc">Bangla Wikipedia-র "অনুবাদ নিরীক্ষণ জরুরি" তালিকা থেকে সংগৃহীত:</p>
+                        <div id="suggestionsList" class="suggestions-list">
+                            <!-- Skeleton loader -->
+                            <div class="skeleton-item"></div>
+                            <div class="skeleton-item"></div>
+                            <div class="skeleton-item"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Article Search -->
+                <div class="card search-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-magnifying-glass text-blue"></i> নির্দিষ্ট নিবন্ধ খুঁজুন</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-form-group">
+                            <input type="text" id="articleSearchInput" placeholder="নিবন্ধের সঠিক শিরোনাম লিখুন (উদা: কৃত্রিম বুদ্ধিমত্তা)">
+                            <button class="btn btn-blue" id="fetchArticleBtn">
+                                <i class="fa-solid fa-download"></i> সংগ্রহ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Wiki Rules Card -->
+                <div class="card rules-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-shield-halved text-emerald"></i> গুরুত্বপূর্ণ নির্দেশনাবলী</h3>
+                    </div>
+                    <div class="card-body text-xs">
+                        <ul>
+                            <li><i class="fa-solid fa-circle-check text-emerald"></i> <strong>উইকিপাঠ রক্ষা:</strong> উইকিসংযোগ <code>[[ ]]</code>, ছক <code>{{ }}</code> ও তথ্যসূত্র <code>&lt;ref&gt;</code> অপরিবর্তিত থাকবে।</li>
+                            <li><i class="fa-solid fa-circle-check text-emerald"></i> <strong>চলিত ভাষা:</strong> অনুবাদটি সহজবোধ্য ও প্রচলিত চলিত ভাষায় (চলিত রীতি) রূপান্তরিত হবে।</li>
+                            <li><i class="fa-solid fa-circle-check text-emerald"></i> <strong>ম্যানুয়াল রিভিশন:</strong> প্রকাশের আগে অবশ্যই একবার ডান পাশের উইন্ডোতে টেক্সটটি রিভিউ করে নিন।</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Editor Workspace Panel -->
+            <section class="app-workspace">
+                
+                <!-- Active Article Banner -->
+                <div class="workspace-header-bar">
+                    <div class="active-title-container">
+                        <span class="active-badge"><i class="fa-regular fa-file-lines"></i> সক্রিয় নিবন্ধ</span>
+                        <h2 id="activeArticleTitle">কোনো নিবন্ধ নির্বাচিত নেই</h2>
+                    </div>
+                    <div class="workspace-actions">
+                        <button class="btn btn-emerald btn-lg disabled" id="correctAiBtn">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> এআই সংশোধন শুরু করুন
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Side-by-Side Editor Panels -->
+                <div class="editor-grid">
+                    
+                    <!-- Left: Original Wikitext (Read Only) -->
+                    <div class="editor-pane original-pane">
+                        <div class="pane-header">
+                            <span class="pane-title"><i class="fa-solid fa-robot"></i> মূল অনুবাদ (মেশিন অনূদিত)</span>
+                            <div class="pane-badge badge-warning">রিড-অনলি</div>
+                        </div>
+                        <div class="pane-content-wrapper">
+                            <textarea id="originalWikitext" readonly placeholder="এখানে উইকিপিডিয়া নিবন্ধের মূল উইকিপাঠ লোড হবে..."></textarea>
+                        </div>
+                        <div class="pane-footer">
+                            <span id="originalCharCount">০ অক্ষর</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: AI Polished Wikitext (Editable) -->
+                    <div class="editor-pane polished-pane">
+                        <div class="pane-header">
+                            <span class="pane-title"><i class="fa-solid fa-user-pen"></i> শুদ্ধ উইকিপাঠ (সম্পাদনযোগ্য)</span>
+                            <div class="pane-badge badge-emerald">এআই ও ম্যানুয়াল এডিট</div>
+                        </div>
+                        <div class="pane-content-wrapper">
+                            <textarea id="polishedWikitext" placeholder="এখানে পরিমার্জিত সংস্করণ প্রদর্শিত হবে যা আপনি এডিট করতে পারবেন..."></textarea>
+                        </div>
+                        <div class="pane-footer">
+                            <span id="polishedWordCount">০ শব্দ</span>
+                            <span id="polishedCharCount">০ অক্ষর</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Publish Panel -->
+                <div class="card publish-card disabled" id="publishCard">
+                    <div class="card-header">
+                        <h3><i class="fa-brands fa-wikipedia-w text-gold"></i> বাংলা উইকিপিডিয়ায় প্রকাশ করুন</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="publish-flow-grid">
+                            <div class="form-group">
+                                <label for="editSummaryInput">সম্পাদনা সারাংশ (Edit Summary)</label>
+                                <input type="text" id="editSummaryInput" value="অনুবাদ পরিমার্জন (AI-assisted cleanup via ShuddhoWiki)" placeholder="উইকিপিডিয়া ইতিহাসের জন্য একটি সংক্ষিপ্ত বিবরণ">
+                            </div>
+                            <div class="publish-actions">
+                                <button class="btn btn-gold btn-lg" id="publishBtn">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> উইকিপিডিয়ায় পোস্ট করুন
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Notification Toast Layer -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Modals or overlays if needed -->
+    <div class="overlay hidden" id="appOverlay"></div>
+    
+    <!-- Client Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
