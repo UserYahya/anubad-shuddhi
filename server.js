@@ -75,7 +75,6 @@ app.get('/auth/mediawiki', (req, res) => {
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('redirect_uri', process.env.WIKIMEDIA_REDIRECT_URI);
   authUrl.searchParams.append('state', state);
-  authUrl.searchParams.append('scope', 'basic edit'); // Scopes for reading identity and editing pages
 
   res.redirect(authUrl.toString());
 });
@@ -206,10 +205,20 @@ app.get('/api/key/models', async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: geminiKey });
     const modelListResponse = await ai.models.list();
     
-    // Collect elements from SDK Pager object using a standard loop
+    // Collect elements from SDK Pager object using a bulletproof polymorphic parser
     const rawModels = [];
-    for (const model of modelListResponse) {
-      rawModels.push(model);
+    if (Array.isArray(modelListResponse)) {
+      rawModels.push(...modelListResponse);
+    } else if (modelListResponse && Array.isArray(modelListResponse.models)) {
+      rawModels.push(...modelListResponse.models);
+    } else if (modelListResponse && typeof modelListResponse[Symbol.iterator] === 'function') {
+      for (const model of modelListResponse) {
+        rawModels.push(model);
+      }
+    } else if (modelListResponse && typeof modelListResponse[Symbol.asyncIterator] === 'function') {
+      for await (const model of modelListResponse) {
+        rawModels.push(model);
+      }
     }
     
     // Filter models that support content generation and simplify objects
