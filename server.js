@@ -279,7 +279,7 @@ app.get('/api/suggestions', async (req, res) => {
         origin: '*'
       },
       headers: {
-        'User-Agent': 'ShuddhoWikiTranslationHelper/1.0 (https://github.com/Antigravity/ShuddhoWiki)'
+        'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
       }
     });
 
@@ -324,7 +324,7 @@ app.get('/api/article', async (req, res) => {
         origin: '*'
       },
       headers: {
-        'User-Agent': 'ShuddhoWikiTranslationHelper/1.0 (https://github.com/Antigravity/ShuddhoWiki)'
+        'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
       }
     });
 
@@ -447,7 +447,7 @@ app.post('/api/publish', async (req, res) => {
     return res.status(400).json({ error: 'Missing article title or wikitext payload.' });
   }
 
-  const editSummary = summary ? `${summary} (ShuddhoWiki AI-assisted)` : 'AI-assisted translation cleanup (ShuddhoWiki)';
+  const editSummary = summary || 'যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে। বিস্তারিত: https://anubad-shuddhi.toolforge.org/';
 
   // Mock Publishing Flow for Local Testing
   if (isMock) {
@@ -475,7 +475,7 @@ app.post('/api/publish', async (req, res) => {
     const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
     const authHeaders = {
       'Authorization': `Bearer ${oauthToken}`,
-      'User-Agent': 'ShuddhoWikiTranslationHelper/1.0 (https://github.com/Antigravity/ShuddhoWiki)'
+      'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
     };
 
     console.log(`[Wikipedia Proxy] Requesting CSRF Token for page edit: "${title}"...`);
