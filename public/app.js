@@ -63,7 +63,15 @@ const els = {
 
   // Dialog Layouts
   toastContainer: document.getElementById('toastContainer'),
-  appOverlay: document.getElementById('appOverlay')
+  appOverlay: document.getElementById('appOverlay'),
+
+  // Mobile Responsive Elements
+  sidebarToggle: document.getElementById('sidebarToggle'),
+  appSidebar: document.querySelector('.app-sidebar'),
+  tabOriginalBtn: document.getElementById('tabOriginalBtn'),
+  tabPolishedBtn: document.getElementById('tabPolishedBtn'),
+  originalPane: document.querySelector('.original-pane'),
+  polishedPane: document.querySelector('.polished-pane')
 };
 
 // Bangla Numerals Dictionary for beautiful localization
@@ -328,6 +336,14 @@ async function correctWikitext() {
 
     updateCharCounts();
     showToast('পরিমার্জন সম্পন্ন', 'Gemini এআই সফলভাবে উইকিপাঠ অপরিবর্তিত রেখে বাংলা অনুবাদ নিখুঁত করেছে!', 'success');
+
+    // Automatically switch to the Polished Editor tab on mobile screens so they see the result immediately
+    if (window.innerWidth <= 768) {
+      els.tabOriginalBtn.classList.remove('active');
+      els.tabPolishedBtn.classList.add('active');
+      els.originalPane.classList.remove('active');
+      els.polishedPane.classList.add('active');
+    }
   } catch (err) {
     console.error('AI correction failure:', err);
     showToast('AI প্রসেসিং ত্রুটি', err.message || 'Gemini API থেকে অনুবাদ সংশোধন করতে ব্যর্থ।', 'error');
@@ -527,7 +543,45 @@ els.polishedWikitext.addEventListener('scroll', () => {
 // Settings Card toggle
 els.keyStatusBtn.addEventListener('click', () => toggleSettingsDrawer(true));
 els.closeSettings.addEventListener('click', () => toggleSettingsDrawer(false));
-els.appOverlay.addEventListener('click', () => toggleSettingsDrawer(false));
+els.appOverlay.addEventListener('click', () => {
+  toggleSettingsDrawer(false);
+  if (els.appSidebar) {
+    els.appSidebar.classList.remove('active');
+  }
+  els.appOverlay.classList.remove('active');
+});
+
+// Mobile Sidebar Toggle
+if (els.sidebarToggle) {
+  els.sidebarToggle.addEventListener('click', () => {
+    if (els.appSidebar) {
+      els.appSidebar.classList.add('active');
+    }
+    els.appOverlay.classList.remove('hidden');
+    els.appOverlay.classList.add('active');
+  });
+}
+
+// Mobile Editor Tabs Switcher
+if (els.tabOriginalBtn && els.tabPolishedBtn) {
+  els.tabOriginalBtn.addEventListener('click', () => {
+    els.tabOriginalBtn.classList.add('active');
+    els.tabPolishedBtn.classList.remove('active');
+    if (els.originalPane && els.polishedPane) {
+      els.originalPane.classList.add('active');
+      els.polishedPane.classList.remove('active');
+    }
+  });
+
+  els.tabPolishedBtn.addEventListener('click', () => {
+    els.tabOriginalBtn.classList.remove('active');
+    els.tabPolishedBtn.classList.add('active');
+    if (els.originalPane && els.polishedPane) {
+      els.originalPane.classList.remove('active');
+      els.polishedPane.classList.add('active');
+    }
+  });
+}
 
 // Password Toggle visibility
 els.toggleKeyVisibility.addEventListener('click', () => {

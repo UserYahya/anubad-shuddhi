@@ -947,6 +947,15 @@ textarea:focus {
   transition: var(--transition-smooth);
 }
 
+/* Hide mobile controls by default on desktop */
+.btn-sidebar-toggle {
+  display: none;
+}
+
+.mobile-tabs-header {
+  display: none;
+}
+
 /* Dynamic Responsive Configurations */
 @media (max-width: 1200px) {
   .app-main {
@@ -965,13 +974,67 @@ textarea:focus {
 }
 
 @media (max-width: 900px) {
-  .editor-grid {
-    grid-template-columns: 1fr;
-    min-height: 400px;
+  /* Show hamburger toggle button */
+  .btn-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    width: 42px;
+    height: 42px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: var(--transition-smooth);
+    margin-right: 0.5rem;
   }
   
+  .btn-sidebar-toggle:hover {
+    background: var(--primary-emerald-glow);
+    border-color: var(--primary-emerald);
+    color: var(--primary-emerald);
+    box-shadow: 0 0 12px var(--primary-emerald-glow);
+  }
+
+  /* Slider Drawer for Mobile Sidebar Settings & Cards */
   .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: -340px; /* Hide off-screen by default */
+    width: 320px;
+    height: 100vh;
+    z-index: 1000;
+    background: rgba(9, 13, 22, 0.95);
+    backdrop-filter: blur(24px);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem;
+    display: flex !important;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  
+  .app-sidebar.active {
+    left: 0;
+  }
+
+  .app-sidebar .card {
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+  .app-main {
     grid-template-columns: 1fr;
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+    min-height: 450px;
+    gap: 1rem;
   }
   
   .workspace-header-bar {
@@ -998,6 +1061,57 @@ textarea:focus {
   
   .publish-actions .btn {
     width: 100%;
+  }
+}
+
+/* Editor Tab Toggles for Mobile Screen Width <= 768px */
+@media (max-width: 768px) {
+  .mobile-tabs-header {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 0.3rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+  }
+
+  .mobile-tab {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-bangla);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .mobile-tab i {
+    font-size: 0.95rem;
+  }
+
+  .mobile-tab.active {
+    background: var(--primary-emerald);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+  
+  /* Show only the active pane on smaller mobile viewports */
+  .editor-pane {
+    display: none !important;
+  }
+  
+  .editor-pane.active {
+    display: flex !important;
   }
 }
 
@@ -1063,4 +1177,89 @@ textarea:focus {
   color: var(--text-muted);
   line-height: 1.6;
   font-size: 0.8rem;
+}
+
+/* Fine-tuned Responsive Adaptations for Smaller Smartphones */
+@media (max-width: 600px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+    border-radius: var(--border-radius-md);
+  }
+  
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.15rem;
+  }
+  
+  .logo-text h1 {
+    font-size: 1.1rem;
+  }
+  
+  .logo-text h1 span {
+    display: none; /* Hide English translation to preserve space */
+  }
+  
+  .logo-text p {
+    display: none; /* Hide tagline */
+  }
+  
+  .header-actions {
+    gap: 0.5rem;
+  }
+  
+  .status-pill {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .status-pill span#keyStatusText {
+    display: none; /* Icon and dot are enough on small screens */
+  }
+
+  .user-profile-badge {
+    padding: 0.25rem;
+    gap: 0;
+    border-radius: 50%;
+  }
+
+  .user-profile-badge .profile-info {
+    display: none; /* Hide profile name */
+  }
+  
+  .user-profile-badge .profile-avatar {
+    margin-right: 0;
+  }
+  
+  .btn-logout {
+    margin-left: 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  .workspace-header-bar {
+    padding: 1rem;
+    border-radius: var(--border-radius-md);
+  }
+
+  .active-title-container h2 {
+    font-size: 1.15rem;
+  }
+
+  .pane-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .pane-content-wrapper {
+    padding: 0.5rem;
+  }
+
+  .pane-footer {
+    padding: 0.5rem 1rem;
+  }
+
+  textarea {
+    font-size: 0.88rem;
+    padding: 0.5rem;
+  }
 }

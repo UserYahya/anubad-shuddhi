@@ -25,6 +25,9 @@
         <!-- Header -->
         <header class="app-header">
             <div class="header-logo">
+                <button class="btn-sidebar-toggle" id="sidebarToggle" title="মেনু">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="logo-icon">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                 </div>
@@ -178,11 +181,21 @@
                     </div>
                 </div>
 
+                <!-- Mobile Editor Tabs Toggle -->
+                <div class="mobile-tabs-header" id="mobileTabsHeader">
+                    <button class="mobile-tab active" id="tabOriginalBtn">
+                        <i class="fa-solid fa-robot"></i> মূল অনুবাদ
+                    </button>
+                    <button class="mobile-tab" id="tabPolishedBtn">
+                        <i class="fa-solid fa-user-pen"></i> শুদ্ধ সংস্করণ
+                    </button>
+                </div>
+
                 <!-- Side-by-Side Editor Panels -->
                 <div class="editor-grid">
                     
                     <!-- Left: Original Wikitext (Read Only) -->
-                    <div class="editor-pane original-pane">
+                    <div class="editor-pane original-pane active">
                         <div class="pane-header">
                             <span class="pane-title"><i class="fa-solid fa-robot"></i> মূল অনুবাদ (মেশিন অনূদিত)</span>
                             <div class="pane-badge badge-warning">রিড-অনলি</div>
