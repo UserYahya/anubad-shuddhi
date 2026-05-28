@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অনুবাদ শুদ্ধি (Anubad Shuddhi) - এআই-চালিত বাংলা উইকিপিডিয়া অনুবাদ পরিমার্জক</title>
+    <title>অনুবাদ শুদ্ধি (Anubad Shuddhi) - এআই-চালিত বাংলা উইকিপিডিয়ার যান্ত্রিক অনুবাদ সংশোধনের সহায়ক সরঞ্জাম</title>
     <!-- Google Fonts: Inter for UI & Hind Siliguri for elegant Bangla rendering -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
                 </div>
                 <div class="logo-text">
                     <h1>অনুবাদ শুদ্ধি <span>(Anubad Shuddhi)</span></h1>
-                    <p>উইকিপিডিয়া অনুবাদ পরিমার্জন সহায়ক</p>
+                    <p>উইকিপিডিয়ার যান্ত্রিক অনুবাদ সংশোধনের সহায়ক সরঞ্জাম</p>
                 </div>
             </div>
 
@@ -81,7 +81,7 @@
                                     <i class="fa-solid fa-eye"></i>
                                 </button>
                             </div>
-                            <small class="help-text">আপনার কীটি সাময়িকভাবে সার্ভার সেশনে সংরক্ষিত থাকবে। কোনো ডাটাবেজে জমা হবে না।</small>
+                            <small class="help-text">আপনার key সাময়িকভাবে সার্ভার সেশনে সংরক্ষিত থাকবে। কোনো ডাটাবেজে জমা হবে না।</small>
                         </div>
                         <div class="form-group" id="modelSelectGroup">
                             <label for="geminiModelSelect">Gemini Model (এআই মডেল)</label>
@@ -106,7 +106,7 @@
                         </button>
                     </div>
                     <div class="card-body">
-                        <p class="section-desc">Bangla Wikipedia-র "অনুবাদ নিরীক্ষণ জরুরি" তালিকা থেকে সংগৃহীত:</p>
+                        <p class="section-desc">বাংলা উইকিপিডিয়ার "অনুবাদ নিরীক্ষণ জরুরি" বিষয়শ্রেণী থেকে সংগৃহীত:</p>
                         <div id="suggestionsList" class="suggestions-list">
                             <!-- Skeleton loader -->
                             <div class="skeleton-item"></div>
@@ -138,12 +138,12 @@
                     </div>
                     <div class="card-body text-xs">
                         <ul class="usage-steps">
-                            <li><span class="step-num">১</span> <span><strong>লগইন করুন:</strong> প্রথমে উইকিপিডিয়া একাউন্টে লগইন করুন।</span></li>
+                            <li><span class="step-num">১</span> <span><strong>লগইন করুন:</strong> প্রথমে উইকিপিডিয়া অ্যাকাউন্টে লগইন করুন।</span></li>
                             <li><span class="step-num">২</span> <span><strong>কী সেট করুন:</strong> Gemini API Key সেটিংস থেকে সংরক্ষণ করুন।</span></li>
-                            <li><span class="step-num">৩</span> <span><strong>নিবন্ধ লোড:</strong> সাজেস্টেড কার্ডে ক্লিক করুন বা ম্যানুয়ালি খুঁজুন।</span></li>
-                            <li><span class="step-num">৪</span> <span><strong>এআই সংশোধন:</strong> বাটনে ক্লিক করে স্বয়ংক্রিয় বাংলা পরিমার্জন করুন।</span></li>
-                            <li><span class="step-num">৫</span> <span><strong>রিভিউ ও সম্পাদনা:</strong> ডান পাশে লেখাটি রিভিউ করুন ও কাস্টম এডিট করুন।</span></li>
-                            <li><span class="step-num">৬</span> <span><strong>প্রকাশ করুন:</strong> সম্পাদনা সারাংশ লিখে সরাসরি উইকিপিডিয়ায় পোস্ট করুন।</span></li>
+                            <li><span class="step-num">৩</span> <span><strong>নিবন্ধ লোড:</strong> সাজেস্টেড কার্ডে ক্লিক করুন বা হাতে নিবন্ধের নাম দিন।</span></li>
+                            <li><span class="step-num">৪</span> <span><strong>এআই সংশোধন:</strong> বাটনে ক্লিক করে স্বয়ংক্রিয়ভসবে বাংলা নিবন্ধ সংশোধন করুন।</span></li>
+                            <li><span class="step-num">৫</span> <span><strong>রিভিউ ও সম্পাদনা:</strong> ডান পাশে লেখাটি রিভিউ করুন ও কোনো সংশোধন প্রয়োজন হলে তা করুন।</span></li>
+                            <li><span class="step-num">৬</span> <span><strong>প্রকাশ করুন:</strong> সম্পাদনা সারাংশ লিখে সরাসরি উইকিপিডিয়ায় সংরক্ষণ করুন।</span></li>
                         </ul>
                     </div>
                 </div>
@@ -172,11 +172,11 @@
                 <div class="workspace-header-bar">
                     <div class="active-title-container">
                         <span class="active-badge"><i class="fa-regular fa-file-lines"></i> সক্রিয় নিবন্ধ</span>
-                        <h2 id="activeArticleTitle">কোনো নিবন্ধ নির্বাচিত নেই</h2>
+                        <h2 id="activeArticleTitle">কোনো নিবন্ধ নির্বাচন করেননি</h2>
                     </div>
                     <div class="workspace-actions">
                         <button class="btn btn-emerald btn-lg disabled" id="correctAiBtn">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> এআই সংশোধন শুরু করুন
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> এআই দ্বারা সংশোধন শুরু করুন
                         </button>
                     </div>
                 </div>
@@ -184,10 +184,10 @@
                 <!-- Mobile Editor Tabs Toggle -->
                 <div class="mobile-tabs-header" id="mobileTabsHeader">
                     <button class="mobile-tab active" id="tabOriginalBtn">
-                        <i class="fa-solid fa-robot"></i> মূল অনুবাদ
+                        <i class="fa-solid fa-robot"></i> মূল নিবন্ধ
                     </button>
                     <button class="mobile-tab" id="tabPolishedBtn">
-                        <i class="fa-solid fa-user-pen"></i> শুদ্ধ সংস্করণ
+                        <i class="fa-solid fa-user-pen"></i> সংশোধিত নিবন্ধ
                     </button>
                 </div>
 
@@ -197,11 +197,11 @@
                     <!-- Left: Original Wikitext (Read Only) -->
                     <div class="editor-pane original-pane active">
                         <div class="pane-header">
-                            <span class="pane-title"><i class="fa-solid fa-robot"></i> মূল অনুবাদ (মেশিন অনূদিত)</span>
+                            <span class="pane-title"><i class="fa-solid fa-robot"></i> মূল নিবন্ধ (মেশিন অনূদিত)</span>
                             <div class="pane-badge badge-warning">রিড-অনলি</div>
                         </div>
                         <div class="pane-content-wrapper">
-                            <textarea id="originalWikitext" readonly placeholder="এখানে উইকিপিডিয়া নিবন্ধের মূল উইকিপাঠ লোড হবে..."></textarea>
+                            <textarea id="originalWikitext" readonly placeholder="এখানে উইকিপিডিয়া নিবন্ধের মূল উইকিটেক্সট লোড হবে..."></textarea>
                         </div>
                         <div class="pane-footer">
                             <span id="originalCharCount">০ অক্ষর</span>
@@ -211,11 +211,11 @@
                     <!-- Right: AI Polished Wikitext (Editable) -->
                     <div class="editor-pane polished-pane">
                         <div class="pane-header">
-                            <span class="pane-title"><i class="fa-solid fa-user-pen"></i> শুদ্ধ উইকিপাঠ (সম্পাদনযোগ্য)</span>
-                            <div class="pane-badge badge-emerald">এআই ও ম্যানুয়াল এডিট</div>
+                            <span class="pane-title"><i class="fa-solid fa-user-pen"></i> সংশোধিত নিবন্ধ</span>
+                            <div class="pane-badge badge-emerald">সংরক্ষণের আগে দেখে নিন</div>
                         </div>
                         <div class="pane-content-wrapper">
-                            <textarea id="polishedWikitext" placeholder="এখানে পরিমার্জিত সংস্করণ প্রদর্শিত হবে যা আপনি এডিট করতে পারবেন..."></textarea>
+                            <textarea id="polishedWikitext" placeholder="এখানে এআই দ্বারা সংশোধিত সংস্করণ প্রদর্শিত হবে যা আপনি এডিট করতে পারবেন..."></textarea>
                         </div>
                         <div class="pane-footer">
                             <span id="polishedWordCount">০ শব্দ</span>
@@ -234,11 +234,11 @@
                         <div class="publish-flow-grid">
                             <div class="form-group">
                                 <label for="editSummaryInput">সম্পাদনা সারাংশ (Edit Summary)</label>
-                                <input type="text" id="editSummaryInput" value="যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে। বিস্তারিত: https://anubad-shuddhi.toolforge.org/" placeholder="উইকিপিডিয়া ইতিহাসের জন্য একটি সংক্ষিপ্ত বিবরণ">
+                                <input type="text" id="editSummaryInput" value="যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে। বিস্তারিত: https://anubad-shuddhi.toolforge.org/" placeholder="সম্পাদনা সারাংশের জন্য একটি সংক্ষিপ্ত বিবরণ">
                             </div>
                             <div class="publish-actions">
                                 <button class="btn btn-gold btn-lg" id="publishBtn">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i> উইকিপিডিয়ায় পোস্ট করুন
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> উইকিপিডিয়ায় সংরক্ষণ করুন
                                 </button>
                             </div>
                         </div>
