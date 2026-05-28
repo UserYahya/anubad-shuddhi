@@ -384,7 +384,7 @@ app.post('/api/correct', async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: geminiKey });
 
     const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha). 
-CRITICAL RULE: You must perfectly preserve ALL Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove internal links [[ ]], templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
+CRITICAL RULE: You must perfectly preserve ALL Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
 
     console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
     
