@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShuddhoWiki - Sublime Bangla Slate CSS Stylesheet
+   Anubad Shuddhi - Sublime Bangla Slate CSS Stylesheet
    ========================================================================== */
 
 /* Design Tokens & Theme Variables */
@@ -1004,18 +1004,19 @@ textarea:focus {
     top: 0;
     left: -340px; /* Hide off-screen by default */
     width: 320px;
+    height: 100%; /* Fallback */
     height: 100vh;
+    max-height: 100vh;
     z-index: 1000;
     background: rgba(9, 13, 22, 0.95);
     backdrop-filter: blur(24px);
     border-right: 1px solid var(--border-color);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
     transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow-y: auto;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
     padding: 1.5rem 1.25rem;
-    display: flex !important;
-    flex-direction: column;
-    gap: 1.25rem;
+    display: block !important; /* Block layout guarantees scrolling */
   }
   
   .app-sidebar.active {
@@ -1023,8 +1024,12 @@ textarea:focus {
   }
 
   .app-sidebar .card {
-    margin-bottom: 0;
+    margin-bottom: 1.25rem; /* Re-enable spacing for vertical stacking */
     width: 100%;
+  }
+
+  .app-sidebar .card:last-child {
+    margin-bottom: 0;
   }
 
   .app-main {
@@ -1262,4 +1267,9 @@ textarea:focus {
     font-size: 0.88rem;
     padding: 0.5rem;
   }
+}
+
+/* Lock background scroll when drawer is open */
+body.drawer-open {
+  overflow: hidden !important;
 }

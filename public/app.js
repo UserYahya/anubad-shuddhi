@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShuddhoWiki - Frontend Client Application Logic
+   Anubad Shuddhi - Frontend Client Application Logic
    ========================================================================== */
 
 // Client State Management
@@ -416,16 +416,39 @@ async function publishToWikipedia() {
 // ==========================================
 
 // Toggle Settings Card visibility
+// Toggle Settings Card visibility
 function toggleSettingsDrawer(show) {
   if (show === undefined) {
-    els.settingsCard.classList.toggle('hidden');
+    const isHidden = els.settingsCard.classList.toggle('hidden');
     els.appOverlay.classList.toggle('hidden');
+    
+    if (!isHidden && window.innerWidth <= 900 && els.appSidebar) {
+      els.appSidebar.classList.add('active');
+      els.appOverlay.classList.add('active');
+      document.body.classList.add('drawer-open');
+    } else if (isHidden && els.appSidebar) {
+      els.appSidebar.classList.remove('active');
+      els.appOverlay.classList.remove('active');
+      document.body.classList.remove('drawer-open');
+    }
   } else if (show) {
     els.settingsCard.classList.remove('hidden');
     els.appOverlay.classList.remove('hidden');
+    
+    if (window.innerWidth <= 900 && els.appSidebar) {
+      els.appSidebar.classList.add('active');
+      els.appOverlay.classList.add('active');
+      document.body.classList.add('drawer-open');
+    }
   } else {
     els.settingsCard.classList.add('hidden');
-    els.appOverlay.classList.add('hidden');
+    if (els.appSidebar && !els.appSidebar.classList.contains('active')) {
+      els.appOverlay.classList.add('hidden');
+      document.body.classList.remove('drawer-open');
+    } else if (!els.appSidebar) {
+      els.appOverlay.classList.add('hidden');
+      document.body.classList.remove('drawer-open');
+    }
   }
 }
 
@@ -542,13 +565,21 @@ els.polishedWikitext.addEventListener('scroll', () => {
 
 // Settings Card toggle
 els.keyStatusBtn.addEventListener('click', () => toggleSettingsDrawer(true));
-els.closeSettings.addEventListener('click', () => toggleSettingsDrawer(false));
+els.closeSettings.addEventListener('click', () => {
+  toggleSettingsDrawer(false);
+  if (els.appSidebar) {
+    els.appSidebar.classList.remove('active');
+  }
+  els.appOverlay.classList.remove('active');
+  document.body.classList.remove('drawer-open');
+});
 els.appOverlay.addEventListener('click', () => {
   toggleSettingsDrawer(false);
   if (els.appSidebar) {
     els.appSidebar.classList.remove('active');
   }
   els.appOverlay.classList.remove('active');
+  document.body.classList.remove('drawer-open');
 });
 
 // Mobile Sidebar Toggle
@@ -559,6 +590,7 @@ if (els.sidebarToggle) {
     }
     els.appOverlay.classList.remove('hidden');
     els.appOverlay.classList.add('active');
+    document.body.classList.add('drawer-open');
   });
 }
 

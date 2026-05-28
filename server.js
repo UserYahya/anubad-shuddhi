@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure Sessions (In-memory store, secure session options)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'shuddhowiki_default_fallback_secret_998877',
+  secret: process.env.SESSION_SECRET || 'anubadshuddhi_default_fallback_secret_998877',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -565,7 +565,7 @@ app.post('/api/publish', async (req, res) => {
 // Run Server
 app.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`  ShuddhoWiki Express Server started successfully!   `);
+  console.log(`  Anubad Shuddhi Express Server started successfully!   `);
   console.log(`  Running locally on: http://localhost:${PORT}        `);
   if (isMockOAuthEnabled()) {
     console.log(`  MOCK OAUTH mode is ENABLED (Local Sandbox).       `);
