@@ -258,6 +258,19 @@ body {
   border-radius: 50px;
 }
 
+.profile-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-gold);
+}
+
 .profile-avatar {
   width: 32px;
   height: 32px;
@@ -1229,8 +1242,9 @@ textarea:focus {
     border-radius: 50%;
   }
 
-  .user-profile-badge .profile-info {
-    display: none; /* Hide profile name */
+  .user-profile-badge .profile-info,
+  .user-profile-badge .profile-stats {
+    display: none; /* Hide profile name and stats on tiny smartphones */
   }
   
   .user-profile-badge .profile-avatar {
@@ -1272,4 +1286,119 @@ textarea:focus {
 /* Lock background scroll when drawer is open */
 body.drawer-open {
   overflow: hidden !important;
+}
+
+/* Locked Screen Overlay (Forced Authentication Layer) */
+.locked-overlay {
+  position: fixed;
+  top: 80px; /* Below the header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(9, 13, 22, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  transition: var(--transition-smooth);
+}
+
+.locked-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 3rem 2rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  animation: slideInUpLocked 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInUpLocked {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.locked-icon {
+  width: 72px;
+  height: 72px;
+  background: var(--primary-gold-glow);
+  border: 1px solid var(--primary-gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--primary-gold);
+  margin-bottom: 0.25rem;
+  box-shadow: 0 0 20px var(--primary-gold-glow);
+}
+
+.locked-card h2 {
+  font-family: var(--font-bangla);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-main);
+  background: linear-gradient(to right, #ffffff, var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.locked-card p {
+  font-family: var(--font-bangla);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.locked-privacy-link {
+  font-family: var(--font-bangla);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.locked-privacy-link i {
+  color: var(--primary-emerald);
+}
+
+.btn-lg {
+  padding: 0.9rem 1.75rem;
+  font-size: 1.05rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+}
+
+/* Adjust locked-overlay placement for mobile devices */
+@media (max-width: 600px) {
+  .locked-overlay {
+    top: 70px;
+  }
+  .locked-card {
+    padding: 2rem 1.5rem;
+    gap: 1.25rem;
+  }
+  .locked-card h2 {
+    font-size: 1.35rem;
+  }
+  .locked-card p {
+    font-size: 0.88rem;
+  }
 }

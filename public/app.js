@@ -126,6 +126,7 @@ async function checkAuthStatus() {
     state.user.loggedIn = data.loggedIn;
     state.user.username = data.username;
     state.user.isMock = data.isMock;
+    state.user.publishedCount = data.publishedCount || 0;
 
     renderAuthUI();
   } catch (err) {
@@ -314,7 +315,8 @@ async function correctWikitext() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         wikitext: state.activeArticle.wikitext,
-        model: selectedModel
+        model: selectedModel,
+        title: state.activeArticle.title
       })
     });
 
@@ -399,6 +401,21 @@ async function publishToWikipedia() {
       'success'
     );
 
+    // Sync persistent contribution count
+    if (data.publishedCount !== undefined) {
+      state.user.publishedCount = data.publishedCount;
+      renderAuthUI();
+    }
+
+    // Reset local title and wikitext states since it has been published
+    state.activeArticle.title = null;
+    state.activeArticle.wikitext = '';
+    els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
+    els.originalWikitext.value = '';
+    els.polishedWikitext.value = '';
+    els.correctAiBtn.classList.add('disabled');
+    els.correctAiBtn.disabled = true;
+
     // Disable further publishing till next fetch
     els.publishCard.classList.add('disabled');
   } catch (err) {
@@ -454,8 +471,16 @@ function toggleSettingsDrawer(show) {
 
 // Render User Status in UI
 function renderAuthUI() {
+  const lockedOverlay = document.getElementById('lockedOverlay');
+
   if (state.user.loggedIn) {
-    // Show Wikipedia account details
+    // Hide forced login locked screen overlay
+    if (lockedOverlay) {
+      lockedOverlay.classList.add('hidden');
+    }
+    document.body.classList.remove('drawer-open');
+
+    // Show Wikipedia account details & stats badge
     const labelText = state.user.isMock ? 'মক সেশন' : 'উইকি এডিটর';
     els.authSection.innerHTML = `
       <div class="user-profile-badge">
@@ -465,6 +490,10 @@ function renderAuthUI() {
         <div class="profile-info">
           <span class="profile-name">${state.user.username}</span>
           <span class="profile-label">${labelText}</span>
+        </div>
+        <div class="profile-stats" title="সফলভাবে শুদ্ধ ও প্রকাশিত নিবন্ধ সংখ্যা">
+          <i class="fa-solid fa-award text-gold"></i>
+          <span>${toBanglaNumber(state.user.publishedCount)}টি</span>
         </div>
         <a href="/auth/logout" class="btn-logout" title="লগআউট করুন">
           <i class="fa-solid fa-right-from-bracket"></i>
@@ -477,6 +506,12 @@ function renderAuthUI() {
       els.publishCard.classList.remove('disabled');
     }
   } else {
+    // Show forced login locked screen overlay
+    if (lockedOverlay) {
+      lockedOverlay.classList.remove('hidden');
+    }
+    document.body.classList.add('drawer-open'); // Prevent back scrolling
+
     // Show Login trigger
     els.authSection.innerHTML = `
       <a href="/auth/mediawiki" class="btn btn-wiki-login" id="wikiLoginBtn">
@@ -698,10 +733,149 @@ els.articleSearchInput.addEventListener('keydown', (e) => {
 els.correctAiBtn.addEventListener('click', correctWikitext);
 
 // Polished editor input updates word counters
-els.polishedWikitext.addEventListener('input', updateCharCounts);
+els.polishedWikitext.addEventListener('input', () => {
+  updateCharCounts();
+  saveProgressToServer();
+});
 
 // Publish action
 els.publishBtn.addEventListener('click', publishToWikipedia);
+
+// Debounce function to limit autosave HTTP request frequency
+function debounce(func, delay) {
+  let debounceTimer;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+
+// Perform draft autosave to server
+const saveProgressToServer = debounce(async () => {
+  if (!state.user.loggedIn || !state.activeArticle.title) return;
+  
+  const polishedText = els.polishedWikitext.value;
+  try {
+    const res = await fetch('/api/article/save-progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ polishedWikitext: polishedText })
+    });
+    if (res.ok) {
+      console.log('[Autosave] Progress saved successfully.');
+    }
+  } catch (err) {
+    console.error('[Autosave] Failed to autosave draft:', err);
+  }
+}, 1000); // 1-second debounce
+
+// Check and recover session active draft progress
+async function checkActiveDraftProgress() {
+  if (!state.user.loggedIn) return;
+  
+  try {
+    const res = await fetch('/api/article/active');
+    const data = await res.json();
+    
+    if (data.activeDraft) {
+      const draft = data.activeDraft;
+      console.log(`[Draft Recovery] Found active server draft: "${draft.title}" with status: "${draft.status}"`);
+      
+      // Restore state
+      state.activeArticle.title = draft.title;
+      state.activeArticle.wikitext = draft.wikitext;
+      state.activeArticle.baserevisionid = draft.baserevisionid;
+      state.activeArticle.basetimestamp = draft.basetimestamp;
+      
+      // Update DOM
+      els.activeArticleTitle.innerText = draft.title;
+      els.originalWikitext.value = draft.wikitext;
+      els.polishedWikitext.value = draft.polishedWikitext || '';
+      
+      els.correctAiBtn.classList.remove('disabled');
+      els.correctAiBtn.disabled = false;
+      
+      updateCharCounts();
+
+      if (draft.status === 'processing') {
+        // Trigger loading state and start polling!
+        triggerAiProcessingState(true);
+        startPollingActiveDraft();
+      } else if (draft.status === 'completed' && draft.polishedWikitext) {
+        if (state.user.loggedIn) {
+          els.publishCard.classList.remove('disabled');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Draft Recovery] Failed to recover active draft:', err);
+  }
+}
+
+let pollingTimer = null;
+function startPollingActiveDraft() {
+  if (pollingTimer) return;
+  
+  console.log('[Poller] Starting draft poller...');
+  pollingTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/api/article/active');
+      const data = await res.json();
+      
+      if (data.activeDraft) {
+        const draft = data.activeDraft;
+        console.log(`[Poller] Checked draft: "${draft.title}". Status: "${draft.status}"`);
+        
+        if (draft.status !== 'processing') {
+          clearInterval(pollingTimer);
+          pollingTimer = null;
+          
+          // Restore text & release loading spinner!
+          els.polishedWikitext.value = draft.polishedWikitext || '';
+          updateCharCounts();
+          triggerAiProcessingState(false);
+          
+          if (state.user.loggedIn && draft.polishedWikitext) {
+            els.publishCard.classList.remove('disabled');
+          }
+          
+          showToast('পরিমার্জন সম্পন্ন', 'সার্ভার-সাইডে এআই সংশোধন সফলভাবে শেষ হয়েছে!', 'success');
+          
+          // Switch to polished tab on mobile screens
+          if (window.innerWidth <= 768) {
+            els.tabOriginalBtn.classList.remove('active');
+            els.tabPolishedBtn.classList.add('active');
+            els.originalPane.classList.remove('active');
+            els.polishedPane.classList.add('active');
+          }
+        }
+      } else {
+        // Active draft cleared
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+        triggerAiProcessingState(false);
+      }
+    } catch (err) {
+      console.error('[Poller] Error polling draft status:', err);
+    }
+  }, 2000); // Poll every 2 seconds
+}
+
+// Utility to switch frontend AI trigger button states
+function triggerAiProcessingState(isProcessing) {
+  state.isProcessingAi = isProcessing;
+  if (isProcessing) {
+    els.correctAiBtn.disabled = true;
+    els.correctAiBtn.classList.add('btn-pulse-active');
+    els.correctAiBtn.innerHTML = `<i class="fa-solid fa-compass fa-spin"></i> পরিমার্জন হচ্ছে...`;
+  } else {
+    els.correctAiBtn.disabled = false;
+    els.correctAiBtn.classList.remove('btn-pulse-active');
+    els.correctAiBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> এআই সংশোধন শুরু করুন`;
+  }
+}
 
 // Check url query for auth callback errors
 function parseURLParams() {
@@ -715,11 +889,14 @@ function parseURLParams() {
 }
 
 // Initialise App
-function init() {
+async function init() {
   parseURLParams();
-  checkAuthStatus();
-  checkKeyStatus();
-  loadSuggestedArticles();
+  await checkAuthStatus();
+  if (state.user.loggedIn) {
+    checkKeyStatus();
+    loadSuggestedArticles();
+    checkActiveDraftProgress(); // Restore any unfinished session draft or active AI job
+  }
 }
 
 // Start app

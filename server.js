@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +41,89 @@ const isMockOAuthEnabled = () => {
   return !clientId || clientId.includes('placeholder') || clientId === 'dummy_client_id_placeholder';
 };
 
+// ==========================================================
+// A. CORE UTILITIES: AUTH MIDDLEWARE, STATS & AI CACHE STORE
+// ==========================================================
+
+// Authenticated Route Guard Middleware
+function requireAuth(req, res, next) {
+  if (!req.session.username) {
+    return res.status(401).json({ error: 'উইকিপিডিয়ায় লগইন করা আবশ্যক।' });
+  }
+  next();
+}
+
+// Persistent User Stats Storage Filesystem
+const USER_STATS_FILE = path.join(__dirname, 'user_stats.json');
+
+function getUserStats(username) {
+  try {
+    if (fs.existsSync(USER_STATS_FILE)) {
+      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8');
+      const data = JSON.parse(fileContent);
+      return data[username] || 0;
+    }
+  } catch (err) {
+    console.error('[Stats Database] Failed to read user stats:', err);
+  }
+  return 0;
+}
+
+function incrementUserStats(username) {
+  try {
+    let data = {};
+    if (fs.existsSync(USER_STATS_FILE)) {
+      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8');
+      data = JSON.parse(fileContent);
+    }
+    data[username] = (data[username] || 0) + 1;
+    fs.writeFileSync(USER_STATS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    return data[username];
+  } catch (err) {
+    console.error('[Stats Database] Failed to save user stats:', err);
+  }
+  return 0;
+}
+
+// Persistent MD5 Hashed Translation Cache Storage Filesystem
+const TRANSLATION_CACHE_FILE = path.join(__dirname, 'translation_cache.json');
+
+function getCachedTranslation(wikitext) {
+  try {
+    const md5Hash = crypto.createHash('md5').update(wikitext).digest('hex');
+    if (fs.existsSync(TRANSLATION_CACHE_FILE)) {
+      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8');
+      const cache = JSON.parse(fileContent);
+      if (cache[md5Hash]) {
+        console.log(`[Token Saver] Cache HIT! MD5: ${md5Hash} (Saved Gemini tokens!)`);
+        return cache[md5Hash];
+      }
+    }
+  } catch (err) {
+    console.error('[Token Saver] Failed to read translation cache:', err);
+  }
+  return null;
+}
+
+function saveTranslationToCache(wikitext, polishedWikitext) {
+  try {
+    const md5Hash = crypto.createHash('md5').update(wikitext).digest('hex');
+    let cache = {};
+    if (fs.existsSync(TRANSLATION_CACHE_FILE)) {
+      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8');
+      cache = JSON.parse(fileContent);
+    }
+    cache[md5Hash] = polishedWikitext;
+    fs.writeFileSync(TRANSLATION_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
+    console.log(`[Token Saver] Saved text to cache. MD5: ${md5Hash}`);
+  } catch (err) {
+    console.error('[Token Saver] Failed to write translation cache:', err);
+  }
+}
+
+// In-Memory active background AI translation jobs
+const activeAiJobs = new Map();
+
 // ==========================================
 // 1. AUTHENTICATION & OAUTH 2.0 ROUTES
 // ==========================================
@@ -46,10 +131,12 @@ const isMockOAuthEnabled = () => {
 // Get Current Auth Status
 app.get('/api/auth/status', (req, res) => {
   if (req.session.username) {
+    const publishedCount = getUserStats(req.session.username);
     return res.json({
       loggedIn: true,
       username: req.session.username,
-      isMock: !!req.session.isMock
+      isMock: !!req.session.isMock,
+      publishedCount: publishedCount
     });
   }
   res.json({ loggedIn: false });
@@ -155,7 +242,7 @@ app.get('/auth/logout', (req, res) => {
 // ==========================================
 
 // Save Gemini Key in Ephemeral Session
-app.post('/api/key/save', (req, res) => {
+app.post('/api/key/save', requireAuth, (req, res) => {
   const { apiKey } = req.body;
   if (!apiKey || apiKey.trim() === '') {
     return res.status(400).json({ error: 'API key is required.' });
@@ -179,7 +266,7 @@ app.post('/api/key/save', (req, res) => {
 });
 
 // Get Key Status (check if exists and return masked version)
-app.get('/api/key/status', (req, res) => {
+app.get('/api/key/status', requireAuth, (req, res) => {
   res.json({ 
     hasKey: !!req.session.geminiKey,
     maskedKey: req.session.geminiMaskedKey || null
@@ -187,14 +274,14 @@ app.get('/api/key/status', (req, res) => {
 });
 
 // Delete Gemini Key from Session
-app.post('/api/key/delete', (req, res) => {
+app.post('/api/key/delete', requireAuth, (req, res) => {
   delete req.session.geminiKey;
   delete req.session.geminiMaskedKey;
   res.json({ success: true, message: 'Gemini API Key removed.' });
 });
 
 // Get available models list from Gemini API for the stored key
-app.get('/api/key/models', async (req, res) => {
+app.get('/api/key/models', requireAuth, async (req, res) => {
   const geminiKey = req.session.geminiKey;
   if (!geminiKey) {
     return res.status(401).json({ error: 'Gemini API Key is missing.' });
@@ -253,7 +340,7 @@ app.get('/api/key/models', async (req, res) => {
 // ==========================================
 
 // Fetch Suggested Articles from Category members
-app.get('/api/suggestions', async (req, res) => {
+app.get('/api/suggestions', requireAuth, async (req, res) => {
   const backupSuggestions = [
     { title: 'কৃত্রিম বুদ্ধিমত্তা', snippet: 'Artificial Intelligence - needs narrative flow improvement.' },
     { title: 'মেশিন লার্নিং', snippet: 'Machine Learning - machine translated terminology polishing.' },
@@ -305,7 +392,7 @@ app.get('/api/suggestions', async (req, res) => {
 });
 
 // Fetch Raw Wikitext, revision ID, and timestamp for conflict checks
-app.get('/api/article', async (req, res) => {
+app.get('/api/article', requireAuth, async (req, res) => {
   const { title } = req.query;
   if (!title) {
     return res.status(400).json({ error: 'Article title is required.' });
@@ -348,6 +435,17 @@ app.get('/api/article', async (req, res) => {
     // Extract wikitext content (handles transition layouts in newer API structure)
     const wikitext = latestRevision.slots?.main?.['*'] || latestRevision['*'] || '';
 
+    // Cache the loaded article status in session to prevent loss
+    req.session.activeArticle = {
+      title: page.title,
+      wikitext: wikitext,
+      polishedWikitext: '',
+      baserevisionid: latestRevision.revid,
+      basetimestamp: latestRevision.timestamp,
+      status: 'idle'
+    };
+    req.session.save();
+
     res.json({
       title: page.title,
       wikitext: wikitext,
@@ -360,12 +458,44 @@ app.get('/api/article', async (req, res) => {
   }
 });
 
+// Get Session Active Draft
+app.get('/api/article/active', requireAuth, (req, res) => {
+  if (req.session.activeArticle) {
+    const draft = req.session.activeArticle;
+    
+    // If the server-side has an active background Gemini job running for this draft,
+    // update the status to processing to ensure the frontend polling resumes perfectly!
+    const job = activeAiJobs.get(draft.title);
+    if (job && job.status === 'processing') {
+      draft.status = 'processing';
+    }
+    
+    return res.json({ activeDraft: draft });
+  }
+  res.json({ activeDraft: null });
+});
+
+// Autosave Polished Text Draft in Server Session
+app.post('/api/article/save-progress', requireAuth, (req, res) => {
+  const { polishedWikitext } = req.body;
+  if (!req.session.activeArticle) {
+    return res.status(404).json({ error: 'No active article loaded in session.' });
+  }
+  
+  req.session.activeArticle.polishedWikitext = polishedWikitext || '';
+  if (req.session.activeArticle.status === 'idle') {
+    req.session.activeArticle.status = 'completed';
+  }
+  req.session.save();
+  res.json({ success: true });
+});
+
 // ==========================================
 // 4. GEMINI API CORRECTION GATEWAY
 // ==========================================
 
-app.post('/api/correct', async (req, res) => {
-  const { wikitext, model } = req.body;
+app.post('/api/correct', requireAuth, async (req, res) => {
+  const { wikitext, model, title } = req.body;
   const geminiKey = req.session.geminiKey;
 
   if (!geminiKey) {
@@ -376,41 +506,107 @@ app.post('/api/correct', async (req, res) => {
     return res.status(400).json({ error: 'Wikitext content is required for processing.' });
   }
 
-  // Target model name - prioritises client-selected model, defaults to gemini-3.5-flash
+  const articleTitle = title || (req.session.activeArticle && req.session.activeArticle.title) || 'Untitled';
   const targetModel = model || 'gemini-3.5-flash';
 
-  try {
-    console.log(`[Gemini SDK] Initializing client with key. Target Model: ${targetModel}`);
-    const ai = new GoogleGenAI({ apiKey: geminiKey });
-
-    const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha). 
-CRITICAL RULE: You must perfectly preserve ALL Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
-
-    console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
-    
-    // Call using official SDK directly
-    const response = await ai.models.generateContent({
-      model: targetModel,
-      contents: wikitext,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.2 // Lower temperature to focus strictly on structural consistency
-      }
-    });
-
-    const correctedText = response.text;
-
-    if (!correctedText) {
-      throw new Error('Gemini API returned an empty response.');
+  // 1. Check MD5 Hashed Translation Cache first to save token usage
+  const cachedText = getCachedTranslation(wikitext);
+  if (cachedText) {
+    if (req.session.activeArticle) {
+      req.session.activeArticle.polishedWikitext = cachedText;
+      req.session.activeArticle.status = 'completed';
+      req.session.save();
     }
+    return res.json({ correctedText: cachedText, cached: true });
+  }
 
-    console.log(`[Gemini SDK] Successfully processed translation using model: ${targetModel}`);
-    res.json({ correctedText });
+  // Set active article status to processing in session
+  if (req.session.activeArticle) {
+    req.session.activeArticle.status = 'processing';
+    req.session.save();
+  }
+
+  // 2. Async Background Reload-Proof Job Registry
+  let job = activeAiJobs.get(articleTitle);
+
+  if (!job) {
+    console.log(`[Reload Saver] Creating new AI correction background job for: "${articleTitle}"`);
+    
+    // Create the background task
+    const aiPromise = (async () => {
+      console.log(`[Gemini SDK] Initializing client with key. Target Model: ${targetModel}`);
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+      const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha). 
+
+CRITICAL RULES:
+1. In case of complex or convoluted sentences, you should break them down into multiple shorter, simpler sentences to keep the flow natural, clear, and readable.
+2. For Wikilinks with suffixes (e.g., [[নজরুল]]-এর or [[নজরুল]]এর or [[নজরুল]]কে), do NOT write them as [[নজরুল]]-Suffix. Instead, format them beautifully inside the brackets as [[নজরুল|নজরুলের]] or [[নজরুল|নজরুলকে]]. Keep the link target identical but adjust the display text to include the suffixes naturally.
+3. You must perfectly preserve ALL other Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
+
+      console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
+      
+      const response = await ai.models.generateContent({
+        model: targetModel,
+        contents: wikitext,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.2
+        }
+      });
+
+      const correctedText = response.text;
+      if (!correctedText) {
+        throw new Error('Gemini API returned an empty response.');
+      }
+
+      return correctedText;
+    })();
+
+    job = {
+      promise: aiPromise,
+      status: 'processing'
+    };
+
+    activeAiJobs.set(articleTitle, job);
+
+    // Run post-processing in background once resolved
+    aiPromise.then((correctedText) => {
+      console.log(`[Reload Saver] Background AI job COMPLETED for: "${articleTitle}"`);
+      
+      // Save result to translation token-saving cache
+      saveTranslationToCache(wikitext, correctedText);
+
+      // Save to active session
+      if (req.session.activeArticle && req.session.activeArticle.title === articleTitle) {
+        req.session.activeArticle.polishedWikitext = correctedText;
+        req.session.activeArticle.status = 'completed';
+        req.session.save();
+      }
+
+      activeAiJobs.delete(articleTitle);
+    }).catch((err) => {
+      console.error(`[Reload Saver] Background AI job FAILED for: "${articleTitle}"`, err);
+      
+      if (req.session.activeArticle && req.session.activeArticle.title === articleTitle) {
+        req.session.activeArticle.status = 'idle';
+        req.session.save();
+      }
+
+      activeAiJobs.delete(articleTitle);
+    });
+  } else {
+    console.log(`[Reload Saver] Attaching to existing ongoing AI job for: "${articleTitle}"`);
+  }
+
+  try {
+    // Wait for the promise to resolve for this synchronous response
+    const correctedText = await job.promise;
+    res.json({ correctedText, cached: false });
   } catch (err) {
     console.error(`[Gemini API Processing Error] Model: ${targetModel}`, err);
     let errorMessage = err.message || 'An error occurred during Gemini translation processing.';
     
-    // Capture specific inner JSON error messages packaged in the SDK exception strings
     if (err.message && err.message.includes('{"error"')) {
       try {
         const jsonStart = err.message.indexOf('{');
@@ -433,21 +629,16 @@ CRITICAL RULE: You must perfectly preserve ALL Wikitext markup exactly as it app
 // 5. MEDIAWIKI API WRITE/EDIT PROXY
 // ==========================================
 
-app.post('/api/publish', async (req, res) => {
+app.post('/api/publish', requireAuth, async (req, res) => {
   const { title, wikitext, baserevisionid, basetimestamp, summary } = req.body;
-  const isLoggedIn = !!req.session.username;
   const isMock = !!req.session.isMock;
   const oauthToken = req.session.oauthToken;
-
-  if (!isLoggedIn) {
-    return res.status(401).json({ error: 'You must be logged in to Wikipedia to publish edits.' });
-  }
 
   if (!title || !wikitext) {
     return res.status(400).json({ error: 'Missing article title or wikitext payload.' });
   }
 
-  const editSummary = summary || 'যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে। বিস্তারিত: https://anubad-shuddhi.toolforge.org/';
+  const editSummary = summary || '[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে';
 
   // Mock Publishing Flow for Local Testing
   if (isMock) {
@@ -457,10 +648,18 @@ app.post('/api/publish', async (req, res) => {
     
     // Artificial delay to simulate real network request
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Increment server-side user published statistics database
+    const newCount = incrementUserStats(req.session.username);
+
+    // Clear active session draft on publish
+    req.session.activeArticle = null;
+    req.session.save();
     
     return res.json({
       success: true,
       mock: true,
+      publishedCount: newCount,
       message: `[MOCK] Successfully saved edit to "${title}" on Bangla Wikipedia! (Mock Session active)`,
       info: {
         title,
@@ -541,9 +740,18 @@ app.post('/api/publish', async (req, res) => {
 
     if (editResult.result === 'Success') {
       console.log(`[Wikipedia Proxy] Successfully published edit to "${title}". New RevID: ${editResult.newrevid}`);
+      
+      // Increment server-side user published statistics database
+      const newCount = incrementUserStats(req.session.username);
+
+      // Clear active session draft on publish
+      req.session.activeArticle = null;
+      req.session.save();
+
       return res.json({
         success: true,
         mock: false,
+        publishedCount: newCount,
         message: `Successfully published edit to "${title}" on Bangla Wikipedia!`,
         info: {
           title: editResult.title,

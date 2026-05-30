@@ -234,7 +234,7 @@
                         <div class="publish-flow-grid">
                             <div class="form-group">
                                 <label for="editSummaryInput">সম্পাদনা সারাংশ (Edit Summary)</label>
-                                <input type="text" id="editSummaryInput" value="যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে। বিস্তারিত: https://anubad-shuddhi.toolforge.org/" placeholder="সম্পাদনা সারাংশের জন্য একটি সংক্ষিপ্ত বিবরণ">
+                                <input type="text" id="editSummaryInput" value="[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে" placeholder="সম্পাদনা সারাংশের জন্য একটি সংক্ষিপ্ত বিবরণ">
                             </div>
                             <div class="publish-actions">
                                 <button class="btn btn-gold btn-lg" id="publishBtn">
@@ -255,6 +255,24 @@
 
     <!-- Modals or overlays if needed -->
     <div class="overlay hidden" id="appOverlay"></div>
+    
+    <!-- Locked Screen Overlay (Visible when logged out) -->
+    <div id="lockedOverlay" class="locked-overlay hidden">
+        <div class="locked-card">
+            <div class="locked-icon">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2>অনুবাদ শুদ্ধি (Anubad Shuddhi)</h2>
+            <p>উইকিপিডিয়া নিবন্ধের স্বয়ংক্রিয় ও নির্ভরযোগ্য বাংলা অনুবাদ পরিমার্জন করতে অনুগ্রহ করে প্রথমে উইকিপিডিয়া একাউন্টে লগইন করুন।</p>
+            <a href="/auth/mediawiki" class="btn btn-wiki-login btn-lg">
+                <i class="fa-brands fa-wikipedia-w"></i>
+                <span>উইকিপিডিয়া একাউন্টে লগইন</span>
+            </a>
+            <div class="locked-privacy-link">
+                <i class="fa-solid fa-user-shield"></i> সেশন ডাটা বা এপিআই কী কোনো সার্ভারে জমা হয় না।
+            </div>
+        </div>
+    </div>
     
     <!-- Client Application Logic -->
     <script src="app.js"></script>
