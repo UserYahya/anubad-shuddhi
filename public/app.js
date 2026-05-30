@@ -71,7 +71,15 @@ const els = {
   tabOriginalBtn: document.getElementById('tabOriginalBtn'),
   tabPolishedBtn: document.getElementById('tabPolishedBtn'),
   originalPane: document.querySelector('.original-pane'),
-  polishedPane: document.querySelector('.polished-pane')
+  polishedPane: document.querySelector('.polished-pane'),
+
+  // Wikipedia Preview Modal
+  previewOriginalBtn: document.getElementById('previewOriginalBtn'),
+  previewPolishedBtn: document.getElementById('previewPolishedBtn'),
+  previewModal: document.getElementById('previewModal'),
+  closePreviewModal: document.getElementById('closePreviewModal'),
+  previewModalTitle: document.getElementById('previewModalTitle'),
+  previewContent: document.getElementById('previewContent')
 };
 
 // Bangla Numerals Dictionary for beautiful localization
@@ -272,6 +280,12 @@ async function fetchArticle(title) {
     els.correctAiBtn.classList.remove('disabled');
     els.correctAiBtn.disabled = false;
     
+    // Enable original preview button, disable polished preview
+    els.previewOriginalBtn.classList.remove('disabled');
+    els.previewOriginalBtn.disabled = false;
+    els.previewPolishedBtn.classList.add('disabled');
+    els.previewPolishedBtn.disabled = true;
+    
     // Reset Publish pane
     els.publishCard.classList.add('disabled');
 
@@ -328,6 +342,10 @@ async function correctWikitext() {
 
     // Populate polished wikitext area
     els.polishedWikitext.value = data.correctedText;
+    
+    // Enable polished preview button
+    els.previewPolishedBtn.classList.remove('disabled');
+    els.previewPolishedBtn.disabled = false;
     
     // Enable Publish Panel
     if (state.user.loggedIn) {
@@ -749,17 +767,56 @@ els.originalWikitext.addEventListener('input', () => {
     els.correctAiBtn.disabled = true;
   }
   
+  // Dynamically toggle preview button state
+  if (els.originalWikitext.value.trim() !== '') {
+    els.previewOriginalBtn.classList.remove('disabled');
+    els.previewOriginalBtn.disabled = false;
+  } else {
+    els.previewOriginalBtn.classList.add('disabled');
+    els.previewOriginalBtn.disabled = true;
+  }
+  
   saveProgressToServer();
 });
 
 // Polished editor input updates word counters and autosaves progress
 els.polishedWikitext.addEventListener('input', () => {
   updateCharCounts();
+  
+  // Dynamically toggle preview button state
+  if (els.polishedWikitext.value.trim() !== '') {
+    els.previewPolishedBtn.classList.remove('disabled');
+    els.previewPolishedBtn.disabled = false;
+  } else {
+    els.previewPolishedBtn.classList.add('disabled');
+    els.previewPolishedBtn.disabled = true;
+  }
+  
   saveProgressToServer();
 });
 
 // Publish action
 els.publishBtn.addEventListener('click', publishToWikipedia);
+
+// Wikipedia Preview Modal triggers
+els.previewOriginalBtn.addEventListener('click', () => {
+  const wikitext = els.originalWikitext.value;
+  showPreview(wikitext, state.activeArticle.title);
+});
+
+els.previewPolishedBtn.addEventListener('click', () => {
+  const wikitext = els.polishedWikitext.value;
+  showPreview(wikitext, state.activeArticle.title);
+});
+
+els.closePreviewModal.addEventListener('click', closePreview);
+
+// Close preview modal on tapping outside content box
+els.previewModal.addEventListener('click', (e) => {
+  if (e.target === els.previewModal) {
+    closePreview();
+  }
+});
 
 // Debounce function to limit autosave HTTP request frequency
 function debounce(func, delay) {
@@ -802,6 +859,61 @@ const saveProgressToServer = debounce(async () => {
   }
 }, 1000); // 1-second debounce
 
+// Request and render Wikipedia-style wikitext preview
+async function showPreview(wikitext, title) {
+  if (!wikitext || wikitext.trim() === '') {
+    showToast('কন্টেন্ট নেই', 'প্রাকদর্শন করার জন্য কোনো উইকিপাঠ লেখা নেই।', 'error');
+    return;
+  }
+
+  const articleTitle = title || state.activeArticle.title || 'Untitled';
+  
+  // Set modal header title and initial loading state
+  els.previewModalTitle.innerText = articleTitle;
+  els.previewContent.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: #7f8c8d; gap: 1rem;">
+      <i class="fa-solid fa-compass fa-spin" style="font-size: 2.5rem; color: var(--primary-gold);"></i>
+      <span style="font-family: var(--font-bangla); font-size: 1rem;">উইকিপিডিয়া থেকে প্রাকদর্শন সংগ্রহ ও রূপান্তর করা হচ্ছে...</span>
+    </div>
+  `;
+  
+  // Display modal (add active class)
+  els.previewModal.classList.add('active');
+  document.body.classList.add('drawer-open'); // Prevent back scroll
+
+  try {
+    const res = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wikitext, title: articleTitle })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to fetch preview from Wikipedia.');
+    }
+
+    // Load rendered HTML into the container
+    els.previewContent.innerHTML = data.html;
+  } catch (err) {
+    console.error('Preview error:', err);
+    els.previewContent.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: #e74c3c; gap: 1rem; text-align: center;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem;"></i>
+        <span style="font-family: var(--font-bangla); font-size: 1.05rem; font-weight: 600;">প্রাকদর্শন লোড করা যায়নি</span>
+        <span style="font-family: var(--font-bangla); font-size: 0.85rem; color: #7f8c8d; max-width: 400px;">${err.message || 'উইকিপিডিয়া প্রাকদর্শন এপিআই এ সংযোগ করা সম্ভব হয়নি।'}</span>
+      </div>
+    `;
+  }
+}
+
+// Dismiss Wikipedia Preview Modal
+function closePreview() {
+  els.previewModal.classList.remove('active');
+  document.body.classList.remove('drawer-open');
+}
+
 // Check and recover session active draft progress
 async function checkActiveDraftProgress() {
   if (!state.user.loggedIn) return;
@@ -827,6 +939,16 @@ async function checkActiveDraftProgress() {
       
       els.correctAiBtn.classList.remove('disabled');
       els.correctAiBtn.disabled = false;
+      
+      // Restore preview buttons state on draft recovery
+      if (draft.wikitext && draft.wikitext.trim() !== '') {
+        els.previewOriginalBtn.classList.remove('disabled');
+        els.previewOriginalBtn.disabled = false;
+      }
+      if (draft.polishedWikitext && draft.polishedWikitext.trim() !== '') {
+        els.previewPolishedBtn.classList.remove('disabled');
+        els.previewPolishedBtn.disabled = false;
+      }
       
       updateCharCounts();
 
@@ -867,6 +989,10 @@ function startPollingActiveDraft() {
           els.polishedWikitext.value = draft.polishedWikitext || '';
           updateCharCounts();
           triggerAiProcessingState(false);
+          
+          // Enable polished preview button
+          els.previewPolishedBtn.classList.remove('disabled');
+          els.previewPolishedBtn.disabled = false;
           
           if (state.user.loggedIn && draft.polishedWikitext) {
             els.publishCard.classList.remove('disabled');

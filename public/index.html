@@ -204,7 +204,10 @@
                             <textarea id="originalWikitext" readonly placeholder="এখানে উইকিপিডিয়া নিবন্ধের মূল উইকিটেক্সট লোড হবে..."></textarea>
                         </div>
                         <div class="pane-footer">
-                            <span id="originalCharCount">০ অক্ষর</span>
+                            <span id="originalCharCount" style="margin-right: auto;">০ অক্ষর</span>
+                            <button class="btn btn-sm btn-outline btn-preview disabled" id="previewOriginalBtn" disabled>
+                                <i class="fa-solid fa-eye"></i> প্রাকদর্শন
+                            </button>
                         </div>
                     </div>
 
@@ -218,8 +221,11 @@
                             <textarea id="polishedWikitext" placeholder="এখানে এআই দ্বারা সংশোধিত সংস্করণ প্রদর্শিত হবে যা আপনি এডিট করতে পারবেন..."></textarea>
                         </div>
                         <div class="pane-footer">
-                            <span id="polishedWordCount">০ শব্দ</span>
+                            <span id="polishedWordCount" style="margin-right: auto;">০ শব্দ</span>
                             <span id="polishedCharCount">০ অক্ষর</span>
+                            <button class="btn btn-sm btn-gold btn-preview disabled" id="previewPolishedBtn" disabled>
+                                <i class="fa-solid fa-eye"></i> প্রাকদর্শন
+                            </button>
                         </div>
                     </div>
 
@@ -274,6 +280,19 @@
         </div>
     </div>
     
+    <!-- Wikipedia Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-eye text-gold"></i> উইকিপিডিয়া প্রাকদর্শন (Preview) - <span id="previewModalTitle">কোনো নিবন্ধ নির্বাচিত নেই</span></h3>
+                <span class="modal-close" id="closePreviewModal"><i class="fa-solid fa-circle-xmark"></i></span>
+            </div>
+            <div class="modal-body wikipedia-preview-body">
+                <div id="previewContent" class="mw-parser-output">এখানে প্রাকদর্শন লোড হবে...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Client Application Logic -->
     <script src="app.js"></script>
 </body>

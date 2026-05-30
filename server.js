@@ -566,6 +566,45 @@ app.post('/api/article/save-progress', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// Proxy API to Parse Wikitext to Wikipedia HTML
+app.post('/api/preview', requireAuth, async (req, res) => {
+  const { wikitext, title } = req.body;
+  if (!wikitext) {
+    return res.status(400).json({ error: 'Wikitext is required for preview.' });
+  }
+
+  try {
+    const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
+    const response = await axios.post(wikiUrl, new URLSearchParams({
+      action: 'parse',
+      text: wikitext,
+      title: title || 'Main Page',
+      contentmodel: 'wikitext',
+      pst: 'true',
+      prop: 'text',
+      disablelimitreport: 'true',
+      format: 'json',
+      utf8: '1',
+      origin: '*'
+    }).toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
+      }
+    });
+
+    const html = response.data?.parse?.text?.['*'];
+    if (!html) {
+      return res.status(500).json({ error: 'Failed to generate preview from Wikipedia.' });
+    }
+
+    res.json({ html });
+  } catch (err) {
+    console.error('[Preview API Error]', err.message);
+    res.status(500).json({ error: `Failed to parse wikitext: ${err.message}` });
+  }
+});
+
 // ==========================================
 // 4. GEMINI API CORRECTION GATEWAY
 // ==========================================

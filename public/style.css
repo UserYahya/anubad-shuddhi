@@ -1402,3 +1402,202 @@ body.drawer-open {
     font-size: 0.88rem;
   }
 }
+
+/* ==========================================
+   PREVIEW MODAL & WIKIPEDIA PREVIEW STYLING
+   ========================================== */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(9, 13, 22, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  width: 90%;
+  max-width: 1000px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  transform: scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-family: var(--font-bangla);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-close {
+  cursor: pointer;
+  font-size: 1.35rem;
+  color: var(--text-muted);
+  transition: var(--transition-smooth);
+}
+
+.modal-close:hover {
+  color: var(--primary-gold);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Premium Wikipedia-Style Preview Theme */
+.wikipedia-preview-body {
+  background: #ffffff;
+  border-radius: var(--border-radius-md);
+  color: #202122;
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+  padding: 2.5rem 2rem;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Simulate Wikipedia output styling precisely */
+.mw-parser-output {
+  color: #202122;
+  direction: ltr;
+}
+
+/* Support Bengali font fallback inside Wikipedia content container */
+.mw-parser-output, 
+.mw-parser-output p, 
+.mw-parser-output li, 
+.mw-parser-output h1, 
+.mw-parser-output h2, 
+.mw-parser-output h3, 
+.mw-parser-output h4 {
+  font-family: "Hind Siliguri", "Inter", sans-serif;
+}
+
+.mw-parser-output p {
+  margin: 0.5em 0 1em 0;
+}
+
+.mw-parser-output a {
+  color: #0645ad;
+  text-decoration: none;
+}
+
+.mw-parser-output a:hover {
+  text-decoration: underline;
+}
+
+.mw-parser-output a.new {
+  color: #ba0000;
+}
+
+.mw-parser-output h1,
+.mw-parser-output h2,
+.mw-parser-output h3,
+.mw-parser-output h4,
+.mw-parser-output h5,
+.mw-parser-output h6 {
+  color: #000000;
+  font-weight: normal;
+  margin: 1em 0 0.25em 0;
+  padding: 0;
+}
+
+.mw-parser-output h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 0.25em;
+}
+
+.mw-parser-output h3 {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.mw-parser-output ul {
+  list-style-type: disc;
+  margin: 0.3em 0 0 1.6em;
+  padding: 0;
+}
+
+.mw-parser-output ol {
+  margin: 0.3em 0 0 1.6em;
+  padding: 0;
+}
+
+.mw-parser-output li {
+  margin-bottom: 0.1em;
+}
+
+.mw-parser-output table.wikitable {
+  background-color: #f8f9fa;
+  border: 1px solid #a2a9b1;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.mw-parser-output table.wikitable > tr > th,
+.mw-parser-output table.wikitable > tr > td,
+.mw-parser-output table.wikitable > * > tr > th,
+.mw-parser-output table.wikitable > * > tr > td {
+  border: 1px solid #a2a9b1;
+  padding: 0.2em 0.4em;
+}
+
+.mw-parser-output table.wikitable > tr > th,
+.mw-parser-output table.wikitable > * > tr > th {
+  background-color: #eaecf0;
+  text-align: center;
+}
+
+/* Extra responsive adjustments for modal height on mobile devices */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+  .wikipedia-preview-body {
+    padding: 1.5rem 1rem;
+  }
+}
+
