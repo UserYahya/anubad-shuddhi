@@ -732,7 +732,27 @@ els.articleSearchInput.addEventListener('keydown', (e) => {
 // AI correction action
 els.correctAiBtn.addEventListener('click', correctWikitext);
 
-// Polished editor input updates word counters
+// Original editor input updates word counters and autosaves progress
+els.originalWikitext.addEventListener('input', () => {
+  updateCharCounts();
+  
+  // Dynamically setup draft details for manual typing/pastes if no fetched title exists
+  if (!state.activeArticle.title && els.originalWikitext.value.trim() !== '') {
+    state.activeArticle.title = 'Untitled';
+    els.activeArticleTitle.innerText = 'Untitled';
+    els.correctAiBtn.classList.remove('disabled');
+    els.correctAiBtn.disabled = false;
+  } else if (els.originalWikitext.value.trim() === '' && state.activeArticle.title === 'Untitled') {
+    state.activeArticle.title = null;
+    els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
+    els.correctAiBtn.classList.add('disabled');
+    els.correctAiBtn.disabled = true;
+  }
+  
+  saveProgressToServer();
+});
+
+// Polished editor input updates word counters and autosaves progress
 els.polishedWikitext.addEventListener('input', () => {
   updateCharCounts();
   saveProgressToServer();
@@ -754,14 +774,25 @@ function debounce(func, delay) {
 
 // Perform draft autosave to server
 const saveProgressToServer = debounce(async () => {
-  if (!state.user.loggedIn || !state.activeArticle.title) return;
+  if (!state.user.loggedIn) return;
   
-  const polishedText = els.polishedWikitext.value;
+  const title = state.activeArticle.title || 'Untitled';
+  const wikitext = els.originalWikitext.value || '';
+  const polishedWikitext = els.polishedWikitext.value || '';
+  const baserevisionid = state.activeArticle.baserevisionid;
+  const basetimestamp = state.activeArticle.basetimestamp;
+  
   try {
     const res = await fetch('/api/article/save-progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ polishedWikitext: polishedText })
+      body: JSON.stringify({ 
+        title,
+        wikitext,
+        polishedWikitext,
+        baserevisionid,
+        basetimestamp
+      })
     });
     if (res.ok) {
       console.log('[Autosave] Progress saved successfully.');

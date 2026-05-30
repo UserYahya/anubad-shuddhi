@@ -59,7 +59,8 @@ const USER_STATS_FILE = path.join(__dirname, 'user_stats.json');
 function getUserStats(username) {
   try {
     if (fs.existsSync(USER_STATS_FILE)) {
-      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8');
+      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8').trim();
+      if (fileContent === '') return 0;
       const data = JSON.parse(fileContent);
       return data[username] || 0;
     }
@@ -73,8 +74,14 @@ function incrementUserStats(username) {
   try {
     let data = {};
     if (fs.existsSync(USER_STATS_FILE)) {
-      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8');
-      data = JSON.parse(fileContent);
+      const fileContent = fs.readFileSync(USER_STATS_FILE, 'utf8').trim();
+      if (fileContent !== '') {
+        try {
+          data = JSON.parse(fileContent);
+        } catch (e) {
+          console.warn('[Stats Database] Corrupted/empty JSON, resetting database:', e);
+        }
+      }
     }
     data[username] = (data[username] || 0) + 1;
     fs.writeFileSync(USER_STATS_FILE, JSON.stringify(data, null, 2), 'utf8');
@@ -92,7 +99,8 @@ function getCachedTranslation(wikitext) {
   try {
     const md5Hash = crypto.createHash('md5').update(wikitext).digest('hex');
     if (fs.existsSync(TRANSLATION_CACHE_FILE)) {
-      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8');
+      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8').trim();
+      if (fileContent === '') return null;
       const cache = JSON.parse(fileContent);
       if (cache[md5Hash]) {
         console.log(`[Token Saver] Cache HIT! MD5: ${md5Hash} (Saved Gemini tokens!)`);
@@ -110,8 +118,14 @@ function saveTranslationToCache(wikitext, polishedWikitext) {
     const md5Hash = crypto.createHash('md5').update(wikitext).digest('hex');
     let cache = {};
     if (fs.existsSync(TRANSLATION_CACHE_FILE)) {
-      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8');
-      cache = JSON.parse(fileContent);
+      const fileContent = fs.readFileSync(TRANSLATION_CACHE_FILE, 'utf8').trim();
+      if (fileContent !== '') {
+        try {
+          cache = JSON.parse(fileContent);
+        } catch (e) {
+          console.warn('[Token Saver] Corrupted/empty JSON, resetting cache:', e);
+        }
+      }
     }
     cache[md5Hash] = polishedWikitext;
     fs.writeFileSync(TRANSLATION_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
@@ -124,8 +138,55 @@ function saveTranslationToCache(wikitext, polishedWikitext) {
 // In-Memory active background AI translation jobs
 const activeAiJobs = new Map();
 
-// In-Memory user active drafts (bulletproof draft recovery database)
-const activeUserDrafts = new Map();
+// Persistent User Active Drafts (bulletproof file-backed draft recovery database)
+const ACTIVE_DRAFTS_FILE = path.join(__dirname, 'active_drafts.json');
+
+function getActiveDrafts() {
+  try {
+    if (fs.existsSync(ACTIVE_DRAFTS_FILE)) {
+      const fileContent = fs.readFileSync(ACTIVE_DRAFTS_FILE, 'utf8').trim();
+      if (fileContent !== '') {
+        return JSON.parse(fileContent);
+      }
+    }
+  } catch (err) {
+    console.error('[Drafts Database] Failed to read active drafts:', err);
+  }
+  return {};
+}
+
+function saveActiveDrafts(drafts) {
+  try {
+    fs.writeFileSync(ACTIVE_DRAFTS_FILE, JSON.stringify(drafts, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Drafts Database] Failed to save active drafts:', err);
+  }
+}
+
+function getActiveDraft(username) {
+  const drafts = getActiveDrafts();
+  return drafts[username] || null;
+}
+
+function saveActiveDraft(username, draft) {
+  try {
+    const drafts = getActiveDrafts();
+    drafts[username] = draft;
+    saveActiveDrafts(drafts);
+  } catch (err) {
+    console.error('[Drafts Database] Failed to save active draft:', err);
+  }
+}
+
+function deleteActiveDraft(username) {
+  try {
+    const drafts = getActiveDrafts();
+    delete drafts[username];
+    saveActiveDrafts(drafts);
+  } catch (err) {
+    console.error('[Drafts Database] Failed to delete active draft:', err);
+  }
+}
 
 // ==========================================
 // 1. AUTHENTICATION & OAUTH 2.0 ROUTES
@@ -438,8 +499,8 @@ app.get('/api/article', requireAuth, async (req, res) => {
     // Extract wikitext content (handles transition layouts in newer API structure)
     const wikitext = latestRevision.slots?.main?.['*'] || latestRevision['*'] || '';
 
-    // Cache the loaded article status in bulletproof server memory map to prevent loss
-    activeUserDrafts.set(req.session.username, {
+    // Cache the loaded article status in bulletproof server drafts database to prevent loss
+    saveActiveDraft(req.session.username, {
       title: page.title,
       wikitext: wikitext,
       polishedWikitext: '',
@@ -462,7 +523,7 @@ app.get('/api/article', requireAuth, async (req, res) => {
 
 // Get Session Active Draft
 app.get('/api/article/active', requireAuth, (req, res) => {
-  const draft = activeUserDrafts.get(req.session.username);
+  const draft = getActiveDraft(req.session.username);
   if (draft) {
     // If the server-side has an active background Gemini job running for this draft,
     // update the status to processing to ensure the frontend polling resumes perfectly!
@@ -477,16 +538,31 @@ app.get('/api/article/active', requireAuth, (req, res) => {
 
 // Autosave Polished Text Draft in Server Session
 app.post('/api/article/save-progress', requireAuth, (req, res) => {
-  const { polishedWikitext } = req.body;
-  const draft = activeUserDrafts.get(req.session.username);
+  const { title, wikitext, polishedWikitext, baserevisionid, basetimestamp } = req.body;
+  
+  let draft = getActiveDraft(req.session.username);
   if (!draft) {
-    return res.status(404).json({ error: 'No active article loaded.' });
+    draft = {
+      title: title || 'Untitled',
+      wikitext: wikitext || '',
+      polishedWikitext: polishedWikitext || '',
+      baserevisionid: baserevisionid || null,
+      basetimestamp: basetimestamp || null,
+      status: 'idle'
+    };
+  } else {
+    if (title !== undefined) draft.title = title;
+    if (wikitext !== undefined) draft.wikitext = wikitext;
+    if (polishedWikitext !== undefined) draft.polishedWikitext = polishedWikitext;
+    if (baserevisionid !== undefined) draft.baserevisionid = baserevisionid;
+    if (basetimestamp !== undefined) draft.basetimestamp = basetimestamp;
   }
   
-  draft.polishedWikitext = polishedWikitext || '';
-  if (draft.status === 'idle') {
+  if (draft.status === 'idle' && draft.polishedWikitext) {
     draft.status = 'completed';
   }
+  
+  saveActiveDraft(req.session.username, draft);
   res.json({ success: true });
 });
 
@@ -506,25 +582,47 @@ app.post('/api/correct', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Wikitext content is required for processing.' });
   }
 
-  const articleTitle = title || (activeUserDrafts.get(req.session.username) && activeUserDrafts.get(req.session.username).title) || 'Untitled';
+  const articleTitle = title || (getActiveDraft(req.session.username) && getActiveDraft(req.session.username).title) || 'Untitled';
   const targetModel = model || 'gemini-3.5-flash';
 
   // 1. Check MD5 Hashed Translation Cache first to save token usage
   const cachedText = getCachedTranslation(wikitext);
   if (cachedText) {
-    const draft = activeUserDrafts.get(req.session.username);
-    if (draft) {
+    let draft = getActiveDraft(req.session.username);
+    if (!draft) {
+      draft = {
+        title: articleTitle,
+        wikitext: wikitext,
+        polishedWikitext: cachedText,
+        baserevisionid: null,
+        basetimestamp: null,
+        status: 'completed'
+      };
+    } else {
+      draft.wikitext = wikitext;
       draft.polishedWikitext = cachedText;
       draft.status = 'completed';
     }
+    saveActiveDraft(req.session.username, draft);
     return res.json({ correctedText: cachedText, cached: true });
   }
 
-  // Set active article status to processing in memory map
-  const draft = activeUserDrafts.get(req.session.username);
-  if (draft) {
+  // Set active article status to processing in server drafts database
+  let draft = getActiveDraft(req.session.username);
+  if (!draft) {
+    draft = {
+      title: articleTitle,
+      wikitext: wikitext,
+      polishedWikitext: '',
+      baserevisionid: null,
+      basetimestamp: null,
+      status: 'processing'
+    };
+  } else {
+    draft.wikitext = wikitext;
     draft.status = 'processing';
   }
+  saveActiveDraft(req.session.username, draft);
 
   // 2. Async Background Reload-Proof Job Registry
   let job = activeAiJobs.get(articleTitle);
@@ -577,20 +675,22 @@ CRITICAL RULES:
       // Save result to translation token-saving cache
       saveTranslationToCache(wikitext, correctedText);
 
-      // Save to active draft memory map
-      const draft = activeUserDrafts.get(req.session.username);
+      // Save to active draft server database
+      const draft = getActiveDraft(req.session.username);
       if (draft && draft.title === articleTitle) {
         draft.polishedWikitext = correctedText;
         draft.status = 'completed';
+        saveActiveDraft(req.session.username, draft);
       }
 
       activeAiJobs.delete(articleTitle);
     }).catch((err) => {
       console.error(`[Reload Saver] Background AI job FAILED for: "${articleTitle}"`, err);
       
-      const draft = activeUserDrafts.get(req.session.username);
+      const draft = getActiveDraft(req.session.username);
       if (draft && draft.title === articleTitle) {
         draft.status = 'idle';
+        saveActiveDraft(req.session.username, draft);
       }
 
       activeAiJobs.delete(articleTitle);
@@ -652,8 +752,8 @@ app.post('/api/publish', requireAuth, async (req, res) => {
     // Increment server-side user published statistics database
     const newCount = incrementUserStats(req.session.username);
 
-    // Clear active draft memory map on publish
-    activeUserDrafts.delete(req.session.username);
+    // Clear active draft server database on publish
+    deleteActiveDraft(req.session.username);
     
     return res.json({
       success: true,
@@ -743,8 +843,8 @@ app.post('/api/publish', requireAuth, async (req, res) => {
       // Increment server-side user published statistics database
       const newCount = incrementUserStats(req.session.username);
 
-      // Clear active draft memory map on publish
-      activeUserDrafts.delete(req.session.username);
+      // Clear active draft server database on publish
+      deleteActiveDraft(req.session.username);
 
       return res.json({
         success: true,
