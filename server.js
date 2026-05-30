@@ -124,6 +124,9 @@ function saveTranslationToCache(wikitext, polishedWikitext) {
 // In-Memory active background AI translation jobs
 const activeAiJobs = new Map();
 
+// In-Memory user active drafts (bulletproof draft recovery database)
+const activeUserDrafts = new Map();
+
 // ==========================================
 // 1. AUTHENTICATION & OAUTH 2.0 ROUTES
 // ==========================================
@@ -435,16 +438,15 @@ app.get('/api/article', requireAuth, async (req, res) => {
     // Extract wikitext content (handles transition layouts in newer API structure)
     const wikitext = latestRevision.slots?.main?.['*'] || latestRevision['*'] || '';
 
-    // Cache the loaded article status in session to prevent loss
-    req.session.activeArticle = {
+    // Cache the loaded article status in bulletproof server memory map to prevent loss
+    activeUserDrafts.set(req.session.username, {
       title: page.title,
       wikitext: wikitext,
       polishedWikitext: '',
       baserevisionid: latestRevision.revid,
       basetimestamp: latestRevision.timestamp,
       status: 'idle'
-    };
-    req.session.save();
+    });
 
     res.json({
       title: page.title,
@@ -460,16 +462,14 @@ app.get('/api/article', requireAuth, async (req, res) => {
 
 // Get Session Active Draft
 app.get('/api/article/active', requireAuth, (req, res) => {
-  if (req.session.activeArticle) {
-    const draft = req.session.activeArticle;
-    
+  const draft = activeUserDrafts.get(req.session.username);
+  if (draft) {
     // If the server-side has an active background Gemini job running for this draft,
     // update the status to processing to ensure the frontend polling resumes perfectly!
     const job = activeAiJobs.get(draft.title);
     if (job && job.status === 'processing') {
       draft.status = 'processing';
     }
-    
     return res.json({ activeDraft: draft });
   }
   res.json({ activeDraft: null });
@@ -478,15 +478,15 @@ app.get('/api/article/active', requireAuth, (req, res) => {
 // Autosave Polished Text Draft in Server Session
 app.post('/api/article/save-progress', requireAuth, (req, res) => {
   const { polishedWikitext } = req.body;
-  if (!req.session.activeArticle) {
-    return res.status(404).json({ error: 'No active article loaded in session.' });
+  const draft = activeUserDrafts.get(req.session.username);
+  if (!draft) {
+    return res.status(404).json({ error: 'No active article loaded.' });
   }
   
-  req.session.activeArticle.polishedWikitext = polishedWikitext || '';
-  if (req.session.activeArticle.status === 'idle') {
-    req.session.activeArticle.status = 'completed';
+  draft.polishedWikitext = polishedWikitext || '';
+  if (draft.status === 'idle') {
+    draft.status = 'completed';
   }
-  req.session.save();
   res.json({ success: true });
 });
 
@@ -506,24 +506,24 @@ app.post('/api/correct', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Wikitext content is required for processing.' });
   }
 
-  const articleTitle = title || (req.session.activeArticle && req.session.activeArticle.title) || 'Untitled';
+  const articleTitle = title || (activeUserDrafts.get(req.session.username) && activeUserDrafts.get(req.session.username).title) || 'Untitled';
   const targetModel = model || 'gemini-3.5-flash';
 
   // 1. Check MD5 Hashed Translation Cache first to save token usage
   const cachedText = getCachedTranslation(wikitext);
   if (cachedText) {
-    if (req.session.activeArticle) {
-      req.session.activeArticle.polishedWikitext = cachedText;
-      req.session.activeArticle.status = 'completed';
-      req.session.save();
+    const draft = activeUserDrafts.get(req.session.username);
+    if (draft) {
+      draft.polishedWikitext = cachedText;
+      draft.status = 'completed';
     }
     return res.json({ correctedText: cachedText, cached: true });
   }
 
-  // Set active article status to processing in session
-  if (req.session.activeArticle) {
-    req.session.activeArticle.status = 'processing';
-    req.session.save();
+  // Set active article status to processing in memory map
+  const draft = activeUserDrafts.get(req.session.username);
+  if (draft) {
+    draft.status = 'processing';
   }
 
   // 2. Async Background Reload-Proof Job Registry
@@ -577,20 +577,20 @@ CRITICAL RULES:
       // Save result to translation token-saving cache
       saveTranslationToCache(wikitext, correctedText);
 
-      // Save to active session
-      if (req.session.activeArticle && req.session.activeArticle.title === articleTitle) {
-        req.session.activeArticle.polishedWikitext = correctedText;
-        req.session.activeArticle.status = 'completed';
-        req.session.save();
+      // Save to active draft memory map
+      const draft = activeUserDrafts.get(req.session.username);
+      if (draft && draft.title === articleTitle) {
+        draft.polishedWikitext = correctedText;
+        draft.status = 'completed';
       }
 
       activeAiJobs.delete(articleTitle);
     }).catch((err) => {
       console.error(`[Reload Saver] Background AI job FAILED for: "${articleTitle}"`, err);
       
-      if (req.session.activeArticle && req.session.activeArticle.title === articleTitle) {
-        req.session.activeArticle.status = 'idle';
-        req.session.save();
+      const draft = activeUserDrafts.get(req.session.username);
+      if (draft && draft.title === articleTitle) {
+        draft.status = 'idle';
       }
 
       activeAiJobs.delete(articleTitle);
@@ -652,9 +652,8 @@ app.post('/api/publish', requireAuth, async (req, res) => {
     // Increment server-side user published statistics database
     const newCount = incrementUserStats(req.session.username);
 
-    // Clear active session draft on publish
-    req.session.activeArticle = null;
-    req.session.save();
+    // Clear active draft memory map on publish
+    activeUserDrafts.delete(req.session.username);
     
     return res.json({
       success: true,
@@ -744,9 +743,8 @@ app.post('/api/publish', requireAuth, async (req, res) => {
       // Increment server-side user published statistics database
       const newCount = incrementUserStats(req.session.username);
 
-      // Clear active session draft on publish
-      req.session.activeArticle = null;
-      req.session.save();
+      // Clear active draft memory map on publish
+      activeUserDrafts.delete(req.session.username);
 
       return res.json({
         success: true,
