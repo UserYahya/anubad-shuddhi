@@ -82,6 +82,8 @@ const els = {
 
   // Mobile Responsive Elements
   sidebarToggle: document.getElementById('sidebarToggle'),
+  darkModeToggle: document.getElementById('darkModeToggle'),
+  mobileDarkModeToggle: document.getElementById('mobileDarkModeToggle'),
   appSidebar: document.querySelector('.app-sidebar'), // Legacy fallback
   tabOriginalBtn: document.getElementById('tabOriginalBtn'),
   tabPolishedBtn: document.getElementById('tabPolishedBtn'),
@@ -702,6 +704,56 @@ if (els.sidebarToggle) {
   });
 }
 
+// ==========================================
+// Dark Mode Toggling Logic
+// ==========================================
+function updateDarkModeIcons(isDark) {
+  const dIcon = els.darkModeToggle ? els.darkModeToggle.querySelector('span') : null;
+  const mIcon = els.mobileDarkModeToggle ? els.mobileDarkModeToggle.querySelector('span') : null;
+  if (dIcon) dIcon.innerText = isDark ? 'light_mode' : 'dark_mode';
+  if (mIcon) mIcon.innerText = isDark ? 'light_mode' : 'dark_mode';
+}
+
+function initDarkMode() {
+  const savedTheme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+  
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+  } else {
+    document.documentElement.classList.add('light');
+    document.documentElement.classList.remove('dark');
+  }
+  
+  updateDarkModeIcons(isDark);
+  
+  const toggleAction = () => {
+    const activeDark = document.documentElement.classList.contains('dark');
+    if (activeDark) {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      localStorage.setItem('theme', 'light');
+      updateDarkModeIcons(false);
+      showToast('ডার্ক মোড', 'ডার্ক মোড নিষ্ক্রিয় করা হয়েছে।', 'info');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('theme', 'dark');
+      updateDarkModeIcons(true);
+      showToast('ডার্ক মোড', 'ডার্ক মোড সক্রিয় করা হয়েছে।', 'info');
+    }
+  };
+  
+  if (els.darkModeToggle) {
+    els.darkModeToggle.addEventListener('click', toggleAction);
+  }
+  if (els.mobileDarkModeToggle) {
+    els.mobileDarkModeToggle.addEventListener('click', toggleAction);
+  }
+}
+
 // Mobile Editor Tabs Switcher
 if (els.tabOriginalBtn && els.tabPolishedBtn) {
   els.tabOriginalBtn.addEventListener('click', () => {
@@ -1302,6 +1354,7 @@ function parseURLParams() {
 
 // Initialise App
 async function init() {
+  initDarkMode();
   parseURLParams();
   await checkAuthStatus();
   if (state.user.loggedIn) {

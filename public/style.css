@@ -475,3 +475,172 @@ body.drawer-open {
     display: flex !important; /* Show active pane only */
   }
 }
+
+/* Mobile Collapsing Breakpoint (< 640px) */
+@media (max-width: 640px) {
+  #keyStatusText {
+    display: none !important;
+  }
+  
+  .user-profile-badge {
+    padding: 0.25rem 0.5rem !important;
+    gap: 0.35rem !important;
+  }
+  
+  .profile-info {
+    display: none !important;
+  }
+  
+  .profile-stats {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   6. Premium Dark Mode Accents & Custom Style Overrides
+   ========================================================================== */
+
+.dark {
+  --surface-background: #0f1115;
+  --border-subtle: #2d323f;
+  --text-main: #f8f9fa;
+  --text-muted: #c3c6d5;
+}
+
+/* Scrollbars in dark mode */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #161a21;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2d323f;
+  border-color: #161a21;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #434653;
+}
+
+/* User profile badge in dark mode */
+.dark .user-profile-badge {
+  background: #1e2530;
+  border-color: #2d323f;
+}
+
+.dark .user-profile-badge:hover {
+  border-color: #434653;
+}
+
+.dark .profile-avatar {
+  background: #2d323f;
+  color: #f8f9fa;
+}
+
+.dark .profile-name {
+  color: #f8f9fa;
+}
+
+/* Mobile Editor switcher tabs in dark mode */
+.dark .mobile-tabs-header {
+  background: #1e2530;
+  border-color: #2d323f;
+}
+
+.dark .mobile-tab {
+  color: #c3c6d5;
+}
+
+.dark .mobile-tab.active {
+  background: #161a21;
+  color: #4c8cff;
+  border-color: #2d323f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Active Inline Editor/Preview button toggles in dark mode */
+.dark #btnOriginalEditor.bg-white,
+.dark #btnOriginalPreview.bg-white,
+.dark #btnModeEditor.bg-white,
+.dark #btnModePreview.bg-white {
+  background-color: #0f1115 !important;
+  color: #ffffff !important;
+}
+
+/* Wikipedia preview markup styling overrides in dark mode */
+.dark .mw-parser-output {
+  color: #f8f9fa;
+}
+
+.dark .mw-parser-output a {
+  color: #4c8cff;
+}
+
+.dark .mw-parser-output h1,
+.dark .mw-parser-output h2,
+.dark .mw-parser-output h3,
+.dark .mw-parser-output h4,
+.dark .mw-parser-output h5,
+.dark .mw-parser-output h6 {
+  color: #ffffff;
+}
+
+.dark .mw-parser-output h2 {
+  border-bottom-color: #2d323f;
+}
+
+.dark .mw-parser-output table.wikitable {
+  background-color: #1e2530;
+  border-color: #2d323f;
+}
+
+.dark .mw-parser-output table.wikitable > tr > th,
+.dark .mw-parser-output table.wikitable > tr > td,
+.dark .mw-parser-output table.wikitable > * > tr > th,
+.dark .mw-parser-output table.wikitable > * > tr > td {
+  border-color: #2d323f;
+}
+
+.dark .mw-parser-output table.wikitable > tr > th,
+.dark .mw-parser-output table.wikitable > * > tr > th {
+  background-color: #2d323f;
+}
+
+/* Toast Notifications in dark mode */
+.dark .toast {
+  background: #161a21;
+  border-color: #2d323f;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.dark .toast-title {
+  color: #f8f9fa;
+}
+
+.dark .toast-message {
+  color: #c3c6d5;
+}
+
+/* Forced login auth locked overlay in dark mode */
+.dark .locked-overlay {
+  background: rgba(15, 17, 21, 0.95);
+}
+
+.dark .locked-card {
+  background: #161a21;
+  border-color: #2d323f;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.dark .locked-icon {
+  background: #1e2530;
+  border-color: #4c8cff;
+  color: #4c8cff;
+}
+
+.dark .locked-card h2 {
+  color: #f8f9fa;
+}
+
+.dark .locked-card p {
+  color: #c3c6d5;
+}
