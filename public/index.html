@@ -90,12 +90,12 @@
                     <span class="material-symbols-outlined">menu</span>
                 </button>
                 <span class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-on-surface dark:text-[#f8f9fa] flex items-center gap-2 cursor-pointer">
-                    Anubad Shuddhi
+                    অনুবাদ-শুদ্ধি
                 </span>
                 <div class="hidden md:flex gap-6">
-                    <a class="text-primary dark:text-[#4c8cff] border-b-2 border-primary dark:border-[#4c8cff] font-bold pb-1 font-label-mono text-xs" href="#">Dashboard</a>
-                    <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/lcpg" target="_blank">Review Category</a>
-                    <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/xqz6" target="_blank">Documentation</a>
+                    <a class="text-primary dark:text-[#4c8cff] border-b-2 border-primary dark:border-[#4c8cff] font-bold pb-1 font-label-mono text-xs" href="#">ড্যাশবোর্ড</a>
+                    <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/lcpg" target="_blank">যেসব নিবন্ধ সংশোধন প্রয়োজন</a>
+                    <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/xqz6" target="_blank">নির্দেশিকা</a>
                 </div>
             </div>
             <div class="flex items-center gap-2 md:gap-4">
@@ -123,9 +123,9 @@
     <!-- Mobile Navigation Menu Panel -->
     <div id="mobileMenuPanel" class="hidden md:hidden bg-white dark:bg-[#161a21] border-b border-border-subtle dark:border-[#2d323f] px-4 py-4 space-y-4 shadow-md transition-colors duration-300">
         <div class="flex flex-col gap-2">
-            <a class="text-primary dark:text-[#4c8cff] font-bold font-label-mono text-sm py-2 px-4 bg-surface-container dark:bg-[#1e2530] rounded border-l-4 border-primary dark:border-[#4c8cff]" href="#">Dashboard</a>
-            <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/lcpg" target="_blank">Review Category</a>
-            <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/xqz6" target="_blank">Documentation</a>
+            <a class="text-primary dark:text-[#4c8cff] font-bold font-label-mono text-sm py-2 px-4 bg-surface-container dark:bg-[#1e2530] rounded border-l-4 border-primary dark:border-[#4c8cff]" href="#">ড্যাশবোর্ড</a>
+            <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/lcpg" target="_blank">যেসব নিবন্ধ সংশোধন প্রয়োজন</a>
+            <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/xqz6" target="_blank">নির্দেশিকা</a>
         </div>
         <div class="flex justify-between items-center border-t border-border-subtle dark:border-[#2d323f] pt-3 px-4">
             <span class="font-label-mono text-xs text-on-surface-variant dark:text-[#c3c6d5]">ডার্ক মোড</span>
@@ -143,7 +143,7 @@
             <div class="flex justify-between items-center cursor-pointer select-none" id="configToggle">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary dark:text-[#4c8cff] text-2xl" data-icon="settings">settings</span>
-                    <h3 class="font-headline-md text-headline-md font-bold">কনফিগারেশন (Configuration)</h3>
+                    <h3 class="font-headline-md text-headline-md font-bold">কনফিগারেশন</h3>
                 </div>
                 <span class="material-symbols-outlined transition-transform duration-300" id="config-chevron">expand_more</span>
             </div>
@@ -157,7 +157,10 @@
                     </div>
                     
                     <div>
-                        <label class="block font-label-mono text-xs mb-2">Gemini API Key</label>
+                        <label class="block font-label-mono text-xs mb-1">Gemini API Key</label>
+                        <p class="text-xs text-text-muted dark:text-[#c3c6d5] mb-2 leading-relaxed">
+                            একটি ফ্রি এপিআই কী পেতে <a href="https://aistudio.google.com/" target="_blank" class="text-primary dark:text-[#4c8cff] hover:underline font-bold"><i class="fa-solid fa-arrow-up-right-from-square text-[10px] mr-0.5"></i>Google AI Studio</a>-তে ভিজিট করুন এবং "Create API Key" বাটনে ক্লিক করুন।
+                        </p>
                         <div class="relative">
                             <input class="w-full border border-border-subtle dark:border-[#2d323f] p-3 pr-10 font-editor-text text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-surface-container-lowest dark:bg-[#0f1115] text-on-surface dark:text-[#f8f9fa] transition-colors duration-300" placeholder="Enter your key here..." type="password" id="geminiKeyInput" autocomplete="off"/>
                             <button type="button" class="absolute right-3 top-3.5 text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors cursor-pointer" id="toggleKeyVisibility">
@@ -200,7 +203,7 @@
                 </div>
                 <button class="flex items-center justify-center gap-2 px-6 py-4 border border-primary dark:border-[#4c8cff] text-primary dark:text-[#4c8cff] font-bold hover:bg-primary-container/10 dark:hover:bg-primary-container/20 transition-colors bg-white dark:bg-[#161a21] rounded text-sm whitespace-nowrap active:scale-95" id="btnToggleSuggestions">
                     <span class="material-symbols-outlined" data-icon="category">category</span>
-                    <span>Load from Review Category</span>
+                    <span>পরামর্শকৃত নিবন্ধ</span>
                 </button>
             </div>
             
@@ -209,7 +212,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <h4 class="font-headline-md text-base font-bold flex items-center gap-2 text-primary dark:text-white">
                         <span class="material-symbols-outlined">lightbulb</span>
-                        <span>নিরীক্ষণযোগ্য নিবন্ধসমূহ (Bangla Wikipedia category members)</span>
+                        <span>"অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ" বিষয়শ্রেণীর প্রথম ৫টি নিবন্ধ</span>
                     </h4>
                     <button class="p-2 text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors cursor-pointer" id="refreshSuggestions" title="তালিকা রিফ্রেশ করুন">
                         <i class="fa-solid fa-arrows-rotate"></i>
@@ -305,7 +308,7 @@
         <div class="md:hidden flex justify-center py-4">
             <button class="bg-primary text-on-primary px-8 py-3 rounded-full font-bold shadow-xl flex items-center gap-2 text-sm disabled active:scale-95 transition-all" id="mobileCorrectAiBtn" disabled>
                 <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
-                <span>এআই সংশোধন শুরু করুন</span>
+                <span>সংশোধন শুরু করুন</span>
             </button>
         </div>
     </main>
@@ -317,14 +320,14 @@
             <div class="flex-grow w-full md:w-auto">
                 <div class="relative group">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant dark:text-[#c3c6d5]">short_text</span>
-                    <input class="w-full border border-border-subtle dark:border-[#2d323f] pl-10 pr-4 py-3 font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-surface-container-lowest dark:bg-[#0f1115] text-on-surface dark:text-[#f8f9fa] rounded transition-colors duration-300" placeholder="সম্পাদনা সারাংশ (Edit Summary)..." type="text" id="editSummaryInput" value="[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে"/>
+                    <input class="w-full border border-border-subtle dark:border-[#2d323f] pl-10 pr-4 py-3 font-body-md text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none bg-surface-container-lowest dark:bg-[#0f1115] text-on-surface dark:text-[#f8f9fa] rounded transition-colors duration-300" placeholder="সম্পাদনা সারাংশ..." type="text" id="editSummaryInput" value="[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে"/>
                 </div>
             </div>
             
             <!-- Publish and Branding info actions -->
             <div class="flex items-center gap-4 w-full md:w-auto shrink-0" id="publishCard">
                 <p class="hidden lg:block font-label-mono text-[10px] text-text-muted dark:text-[#c3c6d5] max-w-[240px] text-right leading-normal">
-                    © Bengali Wikipedia Community. <a href="https://meta.wikimedia.org/wiki/User_talk:Yahya" target="_blank" class="text-primary dark:text-[#4c8cff] hover:underline font-bold">Developer Contact</a>
+                    © Muhammad Yahya. <a href="https://github.com/UserYahya/anubad-shuddhi" target="_blank" class="text-primary dark:text-[#4c8cff] hover:underline font-bold"><i class="fa-brands fa-github mr-1"></i>Contribute on GitHub</a>
                 </p>
                 <button class="flex-grow md:flex-none flex items-center justify-center gap-2 bg-primary text-on-primary px-8 py-3.5 font-bold text-sm hover:opacity-90 active:scale-95 transition-all rounded disabled" id="publishBtn" disabled>
                     <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span>
@@ -346,8 +349,8 @@
             <div class="locked-icon">
                 <span class="material-symbols-outlined text-4xl">lock</span>
             </div>
-            <h2 class="text-xl font-bold">অনুবাদ শুদ্ধি (Anubad Shuddhi)</h2>
-            <p class="text-sm">উইকিপিডিয়া নিবন্ধের স্বয়ংক্রিয় ও নির্ভরযোগ্য বাংলা অনুবাদ পরিমার্জন করতে অনুগ্রহ করে প্রথমে উইকিপিডিয়া একাউন্টে লগইন করুন।</p>
+            <h2 class="text-xl font-bold">অনুবাদ শুদ্ধি</h2>
+            <p class="text-sm">অনুবাদ শুদ্ধি বাংলা উইকিপিডিয়ার যান্ত্রিক অনুবাদের মানোন্নয়ন এবং ভাষাগত আড়ষ্টতা দূর করার জন্য তৈরি একটি এআই-ভিত্তিক ওয়েব টুল। সরঞ্জামটি ব্যবহার করতে প্রথমে উইকিপিডিয়া একাউন্টে লগইন করুন।</p>
             <a href="/auth/mediawiki" class="bg-primary text-on-primary px-6 py-3 font-bold text-sm rounded shadow hover:opacity-90 active:scale-95 transition-all flex items-center gap-2">
                 <i class="fa-brands fa-wikipedia-w"></i>
                 <span>উইকিপিডিয়া একাউন্টে লগইন</span>
