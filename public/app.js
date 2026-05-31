@@ -28,9 +28,9 @@ const els = {
   keyStatusText: document.getElementById('keyStatusText'),
   authSection: document.getElementById('authSection'),
   
-  // Settings Drawer
+  // Settings Collapsible Card
   settingsCard: document.getElementById('settingsCard'),
-  closeSettings: document.getElementById('closeSettings'),
+  closeSettings: document.getElementById('closeSettings'), // Legacy fallback
   geminiKeyInput: document.getElementById('geminiKeyInput'),
   toggleKeyVisibility: document.getElementById('toggleKeyVisibility'),
   saveKeyBtn: document.getElementById('saveKeyBtn'),
@@ -38,8 +38,13 @@ const els = {
   activeKeyContainer: document.getElementById('activeKeyContainer'),
   activeKeyDisplay: document.getElementById('activeKeyDisplay'),
   geminiModelSelect: document.getElementById('geminiModelSelect'),
+  configToggle: document.getElementById('configToggle'),
+  configPanel: document.getElementById('config-panel'),
+  configChevron: document.getElementById('config-chevron'),
 
   // Suggestions
+  suggestionsPanel: document.getElementById('suggestionsPanel'),
+  btnToggleSuggestions: document.getElementById('btnToggleSuggestions'),
   suggestionsList: document.getElementById('suggestionsList'),
   refreshSuggestions: document.getElementById('refreshSuggestions'),
 
@@ -56,6 +61,16 @@ const els = {
   polishedCharCount: document.getElementById('polishedCharCount'),
   polishedWordCount: document.getElementById('polishedWordCount'),
 
+  // Inline Panel Previews
+  btnOriginalEditor: document.getElementById('btnOriginalEditor'),
+  btnOriginalPreview: document.getElementById('btnOriginalPreview'),
+  originalInlinePreview: document.getElementById('originalInlinePreview'),
+  originalInlinePreviewContent: document.getElementById('originalInlinePreviewContent'),
+  btnModeEditor: document.getElementById('btnModeEditor'),
+  btnModePreview: document.getElementById('btnModePreview'),
+  inlinePreview: document.getElementById('inlinePreview'),
+  inlinePreviewContent: document.getElementById('inlinePreviewContent'),
+
   // Publish
   publishCard: document.getElementById('publishCard'),
   editSummaryInput: document.getElementById('editSummaryInput'),
@@ -67,13 +82,13 @@ const els = {
 
   // Mobile Responsive Elements
   sidebarToggle: document.getElementById('sidebarToggle'),
-  appSidebar: document.querySelector('.app-sidebar'),
+  appSidebar: document.querySelector('.app-sidebar'), // Legacy fallback
   tabOriginalBtn: document.getElementById('tabOriginalBtn'),
   tabPolishedBtn: document.getElementById('tabPolishedBtn'),
   originalPane: document.querySelector('.original-pane'),
   polishedPane: document.querySelector('.polished-pane'),
 
-  // Wikipedia Preview Modal
+  // Wikipedia Preview Modal (Legacy compatibility fallback layer)
   previewOriginalBtn: document.getElementById('previewOriginalBtn'),
   previewPolishedBtn: document.getElementById('previewPolishedBtn'),
   previewModal: document.getElementById('previewModal'),
@@ -87,6 +102,18 @@ const bnDigits = { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '
 function toBanglaNumber(num) {
   if (num === null || num === undefined) return '০';
   return String(num).split('').map(char => bnDigits[char] || char).join('');
+}
+
+// Safely enable/disable a DOM element and toggle its disabled class (preventing crashes)
+function safeSetDisabled(el, disabled) {
+  if (el) {
+    el.disabled = disabled;
+    if (disabled) {
+      el.classList.add('disabled');
+    } else {
+      el.classList.remove('disabled');
+    }
+  }
 }
 
 // ==========================================
@@ -272,22 +299,24 @@ async function fetchArticle(title) {
     state.activeArticle.basetimestamp = data.basetimestamp;
 
     // Load to original editor and clear corrected editor
-    els.activeArticleTitle.innerText = data.title;
+    if (els.activeArticleTitle) {
+      els.activeArticleTitle.innerText = data.title;
+      els.activeArticleTitle.classList.remove('hidden');
+    }
     els.originalWikitext.value = data.wikitext;
     els.polishedWikitext.value = '';
     
     // Enable AI buttons
-    els.correctAiBtn.classList.remove('disabled');
-    els.correctAiBtn.disabled = false;
+    safeSetDisabled(els.correctAiBtn, false);
     
     // Enable original preview button, disable polished preview
-    els.previewOriginalBtn.classList.remove('disabled');
-    els.previewOriginalBtn.disabled = false;
-    els.previewPolishedBtn.classList.add('disabled');
-    els.previewPolishedBtn.disabled = true;
+    safeSetDisabled(els.previewOriginalBtn, false);
+    safeSetDisabled(els.previewPolishedBtn, true);
     
     // Reset Publish pane
-    els.publishCard.classList.add('disabled');
+    if (els.publishCard) {
+      els.publishCard.classList.add('disabled');
+    }
 
     // Update character counts
     updateCharCounts();
@@ -315,10 +344,7 @@ async function correctWikitext() {
     return;
   }
 
-  state.isProcessingAi = true;
-  els.correctAiBtn.disabled = true;
-  els.correctAiBtn.classList.add('btn-pulse-active');
-  els.correctAiBtn.innerHTML = `<i class="fa-solid fa-compass fa-spin"></i> পরিমার্জন হচ্ছে...`;
+  triggerAiProcessingState(true);
   
   showToast('AI প্রসেসিং শুরু', 'Gemini এআই উইকিপাঠ বিশ্লেষণ করছে। অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন...', 'info');
 
@@ -344,13 +370,12 @@ async function correctWikitext() {
     els.polishedWikitext.value = data.correctedText;
     
     // Enable polished preview button
-    els.previewPolishedBtn.classList.remove('disabled');
-    els.previewPolishedBtn.disabled = false;
+    safeSetDisabled(els.previewPolishedBtn, false);
     
     // Enable Publish Panel
-    if (state.user.loggedIn) {
+    if (state.user.loggedIn && els.publishCard) {
       els.publishCard.classList.remove('disabled');
-    } else {
+    } else if (!state.user.loggedIn) {
       showToast('লগইন করুন', 'পরিমার্জিত সংস্করণ প্রকাশ করতে হলে আপনাকে উইকিপিডিয়া একাউন্টে লগইন করতে হবে।', 'info');
     }
 
@@ -368,10 +393,7 @@ async function correctWikitext() {
     console.error('AI correction failure:', err);
     showToast('AI প্রসেসিং ত্রুটি', err.message || 'Gemini API থেকে অনুবাদ সংশোধন করতে ব্যর্থ।', 'error');
   } finally {
-    state.isProcessingAi = false;
-    els.correctAiBtn.disabled = false;
-    els.correctAiBtn.classList.remove('btn-pulse-active');
-    els.correctAiBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> এআই সংশোধন শুরু করুন`;
+    triggerAiProcessingState(false);
   }
 }
 
@@ -450,39 +472,28 @@ async function publishToWikipedia() {
 // 3. UI RENDERING & EVENT CONTROLLERS
 // ==========================================
 
-// Toggle Settings Card visibility
-// Toggle Settings Card visibility
+// Toggle Settings Card inline configuration panel
 function toggleSettingsDrawer(show) {
+  if (!els.configPanel) return;
+  
   if (show === undefined) {
-    const isHidden = els.settingsCard.classList.toggle('hidden');
-    els.appOverlay.classList.toggle('hidden');
-    
-    if (!isHidden && window.innerWidth <= 900 && els.appSidebar) {
-      els.appSidebar.classList.add('active');
-      els.appOverlay.classList.add('active');
-      document.body.classList.add('drawer-open');
-    } else if (isHidden && els.appSidebar) {
-      els.appSidebar.classList.remove('active');
-      els.appOverlay.classList.remove('active');
-      document.body.classList.remove('drawer-open');
+    const isHidden = els.configPanel.classList.toggle('hidden');
+    if (els.configChevron) {
+      els.configChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
     }
   } else if (show) {
-    els.settingsCard.classList.remove('hidden');
-    els.appOverlay.classList.remove('hidden');
-    
-    if (window.innerWidth <= 900 && els.appSidebar) {
-      els.appSidebar.classList.add('active');
-      els.appOverlay.classList.add('active');
-      document.body.classList.add('drawer-open');
+    els.configPanel.classList.remove('hidden');
+    if (els.configChevron) {
+      els.configChevron.style.transform = 'rotate(180deg)';
+    }
+    // Scroll settings card into view smoothly when clicking API status button
+    if (els.settingsCard) {
+      els.settingsCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } else {
-    els.settingsCard.classList.add('hidden');
-    if (els.appSidebar && !els.appSidebar.classList.contains('active')) {
-      els.appOverlay.classList.add('hidden');
-      document.body.classList.remove('drawer-open');
-    } else if (!els.appSidebar) {
-      els.appOverlay.classList.add('hidden');
-      document.body.classList.remove('drawer-open');
+    els.configPanel.classList.add('hidden');
+    if (els.configChevron) {
+      els.configChevron.style.transform = 'rotate(0deg)';
     }
   }
 }
@@ -617,23 +628,51 @@ els.polishedWikitext.addEventListener('scroll', () => {
 // ==========================================
 
 // Settings Card toggle
-els.keyStatusBtn.addEventListener('click', () => toggleSettingsDrawer(true));
-els.closeSettings.addEventListener('click', () => {
-  toggleSettingsDrawer(false);
-  if (els.appSidebar) {
-    els.appSidebar.classList.remove('active');
-  }
-  els.appOverlay.classList.remove('active');
-  document.body.classList.remove('drawer-open');
-});
-els.appOverlay.addEventListener('click', () => {
-  toggleSettingsDrawer(false);
-  if (els.appSidebar) {
-    els.appSidebar.classList.remove('active');
-  }
-  els.appOverlay.classList.remove('active');
-  document.body.classList.remove('drawer-open');
-});
+if (els.keyStatusBtn) {
+  els.keyStatusBtn.addEventListener('click', () => toggleSettingsDrawer(true));
+}
+
+if (els.closeSettings) {
+  els.closeSettings.addEventListener('click', () => {
+    toggleSettingsDrawer(false);
+    if (els.appSidebar) {
+      els.appSidebar.classList.remove('active');
+    }
+    els.appOverlay.classList.remove('active');
+    document.body.classList.remove('drawer-open');
+  });
+}
+
+if (els.appOverlay) {
+  els.appOverlay.addEventListener('click', () => {
+    toggleSettingsDrawer(false);
+    if (els.appSidebar) {
+      els.appSidebar.classList.remove('active');
+    }
+    els.appOverlay.classList.remove('active');
+    document.body.classList.remove('drawer-open');
+  });
+}
+
+// Inline configuration panel header toggle
+if (els.configToggle && els.configPanel) {
+  els.configToggle.addEventListener('click', () => {
+    const isHidden = els.configPanel.classList.toggle('hidden');
+    if (els.configChevron) {
+      els.configChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+  });
+}
+
+// Suggestions panel list collapser
+if (els.btnToggleSuggestions && els.suggestionsPanel) {
+  els.btnToggleSuggestions.addEventListener('click', () => {
+    const isHidden = els.suggestionsPanel.classList.toggle('hidden');
+    if (!isHidden) {
+      loadSuggestedArticles();
+    }
+  });
+}
 
 // Mobile Sidebar Toggle
 if (els.sidebarToggle) {
@@ -641,8 +680,10 @@ if (els.sidebarToggle) {
     if (els.appSidebar) {
       els.appSidebar.classList.add('active');
     }
-    els.appOverlay.classList.remove('hidden');
-    els.appOverlay.classList.add('active');
+    if (els.appOverlay) {
+      els.appOverlay.classList.remove('hidden');
+      els.appOverlay.classList.add('active');
+    }
     document.body.classList.add('drawer-open');
   });
 }
@@ -669,154 +710,313 @@ if (els.tabOriginalBtn && els.tabPolishedBtn) {
 }
 
 // Password Toggle visibility
-els.toggleKeyVisibility.addEventListener('click', () => {
-  const type = els.geminiKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
-  els.geminiKeyInput.setAttribute('type', type);
-  els.toggleKeyVisibility.querySelector('i').className = type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
-});
+if (els.toggleKeyVisibility) {
+  els.toggleKeyVisibility.addEventListener('click', () => {
+    const type = els.geminiKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    els.geminiKeyInput.setAttribute('type', type);
+    
+    // Adapt robustly to FontAwesome OR Material Symbols icon
+    const icon = els.toggleKeyVisibility.querySelector('i, span');
+    if (icon) {
+      if (icon.tagName.toLowerCase() === 'span') {
+        icon.innerText = type === 'password' ? 'visibility' : 'visibility_off';
+      } else {
+        icon.className = type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+      }
+    }
+  });
+}
 
 // Save Gemini API Key
-els.saveKeyBtn.addEventListener('click', async () => {
-  const key = els.geminiKeyInput.value.trim();
-  
-  if (key === '') {
-    if (state.hasApiKey) {
-      // If key already loaded and they left input blank, they just want to close the configurations.
-      toggleSettingsDrawer(false);
+if (els.saveKeyBtn) {
+  els.saveKeyBtn.addEventListener('click', async () => {
+    const key = els.geminiKeyInput.value.trim();
+    
+    if (key === '') {
+      if (state.hasApiKey) {
+        toggleSettingsDrawer(false);
+        return;
+      }
+      showToast('কী তথ্য নেই', 'অনুগ্রহ করে একটি নতুন Gemini API Key প্রবেশ করান।', 'error');
       return;
     }
-    showToast('কী তথ্য নেই', 'অনুগ্রহ করে একটি নতুন Gemini API Key প্রবেশ করান।', 'error');
-    return;
-  }
 
-  try {
-    const res = await fetch('/api/key/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: key })
-    });
-    
-    const data = await res.json();
-    
-    if (res.ok) {
-      state.hasApiKey = true;
-      state.maskedKey = data.maskedKey;
-      renderKeyStatusUI();
-      loadAvailableModels(); // Load models dynamically for new key!
-      toggleSettingsDrawer(false);
-      showToast('সফলভাবে সংরক্ষিত', 'Gemini API Key আপনার বর্তমান সেশনে সফলভাবে সংরক্ষণ করা হয়েছে!', 'success');
-    } else {
-      throw new Error(data.error || 'কী সেভ করতে ব্যর্থ।');
+    try {
+      const res = await fetch('/api/key/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: key })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        state.hasApiKey = true;
+        state.maskedKey = data.maskedKey;
+        renderKeyStatusUI();
+        loadAvailableModels();
+        toggleSettingsDrawer(false);
+        showToast('সফলভাবে সংরক্ষিত', 'Gemini API Key আপনার বর্তমান সেশনে সফলভাবে সংরক্ষণ করা হয়েছে!', 'success');
+      } else {
+        throw new Error(data.error || 'কী সেভ করতে ব্যর্থ।');
+      }
+    } catch (err) {
+      showToast('সংরক্ষণ ত্রুটি', err.message || 'সার্ভারে কীটি সেভ করতে সমস্যা হয়েছে।', 'error');
     }
-  } catch (err) {
-    showToast('সংরক্ষণ ত্রুটি', err.message || 'সার্ভারে কীটি সেভ করতে সমস্যা হয়েছে।', 'error');
-  }
-});
+  });
+}
 
 // Delete Gemini API Key
-els.deleteKeyBtn.addEventListener('click', async () => {
-  try {
-    const res = await fetch('/api/key/delete', { method: 'POST' });
-    if (res.ok) {
-      state.hasApiKey = false;
-      state.maskedKey = null;
-      renderKeyStatusUI();
-      loadAvailableModels(); // Reset models select dropdown!
-      toggleSettingsDrawer(false);
-      showToast('কী অপসারিত', 'সার্ভার সেশন থেকে Gemini API Key সফলভাবে মুছে দেওয়া হয়েছে।', 'success');
+if (els.deleteKeyBtn) {
+  els.deleteKeyBtn.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/key/delete', { method: 'POST' });
+      if (res.ok) {
+        state.hasApiKey = false;
+        state.maskedKey = null;
+        renderKeyStatusUI();
+        loadAvailableModels();
+        toggleSettingsDrawer(false);
+        showToast('কী অপসারিত', 'সার্ভার সেশন থেকে Gemini API Key সফলভাবে মুছে দেওয়া হয়েছে।', 'success');
+      }
+    } catch (err) {
+      showToast('অপসারণ ত্রুটি', 'কীটি মুছতে সমস্যা হয়েছে।', 'error');
     }
-  } catch (err) {
-    showToast('অপসারণ ত্রুটি', 'কীটি মুছতে সমস্যা হয়েছে।', 'error');
-  }
-});
+  });
+}
 
 // Refresh suggested articles list
-els.refreshSuggestions.addEventListener('click', loadSuggestedArticles);
+if (els.refreshSuggestions) {
+  els.refreshSuggestions.addEventListener('click', loadSuggestedArticles);
+}
 
 // Manual search event trigger
-els.fetchArticleBtn.addEventListener('click', () => {
-  const title = els.articleSearchInput.value;
-  fetchArticle(title);
-});
-
-// Trigger article search via ENTER key press
-els.articleSearchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
+if (els.fetchArticleBtn) {
+  els.fetchArticleBtn.addEventListener('click', () => {
     const title = els.articleSearchInput.value;
     fetchArticle(title);
-  }
-});
+  });
+}
+
+if (els.articleSearchInput) {
+  // Trigger article search via ENTER key press
+  els.articleSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const title = els.articleSearchInput.value;
+      fetchArticle(title);
+    }
+  });
+}
 
 // AI correction action
-els.correctAiBtn.addEventListener('click', correctWikitext);
+if (els.correctAiBtn) {
+  els.correctAiBtn.addEventListener('click', correctWikitext);
+}
 
 // Original editor input updates word counters and autosaves progress
-els.originalWikitext.addEventListener('input', () => {
-  updateCharCounts();
-  
-  // Dynamically setup draft details for manual typing/pastes if no fetched title exists
-  if (!state.activeArticle.title && els.originalWikitext.value.trim() !== '') {
-    state.activeArticle.title = 'Untitled';
-    els.activeArticleTitle.innerText = 'Untitled';
-    els.correctAiBtn.classList.remove('disabled');
-    els.correctAiBtn.disabled = false;
-  } else if (els.originalWikitext.value.trim() === '' && state.activeArticle.title === 'Untitled') {
-    state.activeArticle.title = null;
-    els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
-    els.correctAiBtn.classList.add('disabled');
-    els.correctAiBtn.disabled = true;
-  }
-  
-  // Dynamically toggle preview button state
-  if (els.originalWikitext.value.trim() !== '') {
-    els.previewOriginalBtn.classList.remove('disabled');
-    els.previewOriginalBtn.disabled = false;
-  } else {
-    els.previewOriginalBtn.classList.add('disabled');
-    els.previewOriginalBtn.disabled = true;
-  }
-  
-  saveProgressToServer();
-});
+if (els.originalWikitext) {
+  els.originalWikitext.addEventListener('input', () => {
+    updateCharCounts();
+    
+    // Dynamically setup draft details for manual typing/pastes if no fetched title exists
+    if (!state.activeArticle.title && els.originalWikitext.value.trim() !== '') {
+      state.activeArticle.title = 'Untitled';
+      if (els.activeArticleTitle) {
+        els.activeArticleTitle.innerText = 'Untitled';
+        els.activeArticleTitle.classList.remove('hidden');
+      }
+      if (els.correctAiBtn) {
+        els.correctAiBtn.classList.remove('disabled');
+        els.correctAiBtn.disabled = false;
+      }
+    } else if (els.originalWikitext.value.trim() === '' && state.activeArticle.title === 'Untitled') {
+      state.activeArticle.title = null;
+      if (els.activeArticleTitle) {
+        els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
+        els.activeArticleTitle.classList.add('hidden');
+      }
+      if (els.correctAiBtn) {
+        els.correctAiBtn.classList.add('disabled');
+        els.correctAiBtn.disabled = true;
+      }
+    }
+    
+    // Safeguarded toggle preview button state
+    if (els.previewOriginalBtn) {
+      if (els.originalWikitext.value.trim() !== '') {
+        els.previewOriginalBtn.classList.remove('disabled');
+        els.previewOriginalBtn.disabled = false;
+      } else {
+        els.previewOriginalBtn.classList.add('disabled');
+        els.previewOriginalBtn.disabled = true;
+      }
+    }
+    
+    saveProgressToServer();
+  });
+}
 
 // Polished editor input updates word counters and autosaves progress
-els.polishedWikitext.addEventListener('input', () => {
-  updateCharCounts();
-  
-  // Dynamically toggle preview button state
-  if (els.polishedWikitext.value.trim() !== '') {
-    els.previewPolishedBtn.classList.remove('disabled');
-    els.previewPolishedBtn.disabled = false;
-  } else {
-    els.previewPolishedBtn.classList.add('disabled');
-    els.previewPolishedBtn.disabled = true;
-  }
-  
-  saveProgressToServer();
-});
+if (els.polishedWikitext) {
+  els.polishedWikitext.addEventListener('input', () => {
+    updateCharCounts();
+    
+    // Safeguarded toggle preview button state
+    if (els.previewPolishedBtn) {
+      if (els.polishedWikitext.value.trim() !== '') {
+        els.previewPolishedBtn.classList.remove('disabled');
+        els.previewPolishedBtn.disabled = false;
+      } else {
+        els.previewPolishedBtn.classList.add('disabled');
+        els.previewPolishedBtn.disabled = true;
+      }
+    }
+    
+    saveProgressToServer();
+  });
+}
 
 // Publish action
-els.publishBtn.addEventListener('click', publishToWikipedia);
+if (els.publishBtn) {
+  els.publishBtn.addEventListener('click', publishToWikipedia);
+}
 
-// Wikipedia Preview Modal triggers
-els.previewOriginalBtn.addEventListener('click', () => {
-  const wikitext = els.originalWikitext.value;
-  showPreview(wikitext, state.activeArticle.title);
-});
+// Wikipedia Preview Modal triggers (Legacy compatibility fallbacks)
+if (els.previewOriginalBtn) {
+  els.previewOriginalBtn.addEventListener('click', () => {
+    const wikitext = els.originalWikitext.value;
+    showPreview(wikitext, state.activeArticle.title);
+  });
+}
 
-els.previewPolishedBtn.addEventListener('click', () => {
-  const wikitext = els.polishedWikitext.value;
-  showPreview(wikitext, state.activeArticle.title);
-});
+if (els.previewPolishedBtn) {
+  els.previewPolishedBtn.addEventListener('click', () => {
+    const wikitext = els.polishedWikitext.value;
+    showPreview(wikitext, state.activeArticle.title);
+  });
+}
 
-els.closePreviewModal.addEventListener('click', closePreview);
+if (els.closePreviewModal) {
+  els.closePreviewModal.addEventListener('click', closePreview);
+}
 
-// Close preview modal on tapping outside content box
-els.previewModal.addEventListener('click', (e) => {
-  if (e.target === els.previewModal) {
-    closePreview();
-  }
-});
+if (els.previewModal) {
+  els.previewModal.addEventListener('click', (e) => {
+    if (e.target === els.previewModal) {
+      closePreview();
+    }
+  });
+}
+
+// Inline original editor / preview switcher
+if (els.btnOriginalEditor && els.btnOriginalPreview) {
+  els.btnOriginalEditor.addEventListener('click', () => {
+    els.btnOriginalEditor.classList.add('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnOriginalEditor.classList.remove('text-on-surface-variant');
+    els.btnOriginalPreview.classList.remove('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnOriginalPreview.classList.add('text-on-surface-variant');
+    
+    els.originalWikitext.classList.remove('hidden');
+    if (els.originalInlinePreview) {
+      els.originalInlinePreview.classList.add('hidden');
+    }
+  });
+
+  els.btnOriginalPreview.addEventListener('click', async () => {
+    els.btnOriginalPreview.classList.add('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnOriginalPreview.classList.remove('text-on-surface-variant');
+    els.btnOriginalEditor.classList.remove('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnOriginalEditor.classList.add('text-on-surface-variant');
+    
+    els.originalWikitext.classList.add('hidden');
+    const previewContainer = els.originalInlinePreview;
+    const previewContent = els.originalInlinePreviewContent;
+    if (previewContainer) {
+      previewContainer.classList.remove('hidden');
+    }
+    
+    const wikitext = els.originalWikitext.value;
+    if (!previewContent) return;
+    
+    if (!wikitext || wikitext.trim() === '') {
+      previewContent.innerHTML = `<div class="p-4 text-center text-text-muted">কোনো কন্টেন্ট নেই</div>`;
+      return;
+    }
+    
+    previewContent.innerHTML = `<div class="p-4 text-center text-text-muted"><i class="fa-solid fa-spinner fa-spin mr-2"></i> লোড হচ্ছে...</div>`;
+    
+    try {
+      const res = await fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wikitext, title: state.activeArticle.title })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        previewContent.innerHTML = data.html;
+      } else {
+        previewContent.innerHTML = `<div class="p-4 text-center text-destructive-red">লোড করতে ব্যর্থ হয়েছে: ${data.error || 'অজানা ত্রুটি'}</div>`;
+      }
+    } catch (err) {
+      previewContent.innerHTML = `<div class="p-4 text-center text-destructive-red">নেটওয়ার্ক ত্রুটি</div>`;
+    }
+  });
+}
+
+// Inline corrected editor / preview switcher
+if (els.btnModeEditor && els.btnModePreview) {
+  els.btnModeEditor.addEventListener('click', () => {
+    els.btnModeEditor.classList.add('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnModeEditor.classList.remove('text-on-surface-variant');
+    els.btnModePreview.classList.remove('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnModePreview.classList.add('text-on-surface-variant');
+    
+    els.polishedWikitext.classList.remove('hidden');
+    if (els.inlinePreview) {
+      els.inlinePreview.classList.add('hidden');
+    }
+  });
+
+  els.btnModePreview.addEventListener('click', async () => {
+    els.btnModePreview.classList.add('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnModePreview.classList.remove('text-on-surface-variant');
+    els.btnModeEditor.classList.remove('bg-white', 'shadow-sm', 'rounded', 'font-bold');
+    els.btnModeEditor.classList.add('text-on-surface-variant');
+    
+    els.polishedWikitext.classList.add('hidden');
+    const previewContainer = els.inlinePreview;
+    const previewContent = els.inlinePreviewContent;
+    if (previewContainer) {
+      previewContainer.classList.remove('hidden');
+    }
+    
+    const wikitext = els.polishedWikitext.value;
+    if (!previewContent) return;
+    
+    if (!wikitext || wikitext.trim() === '') {
+      previewContent.innerHTML = `<div class="p-4 text-center text-text-muted">কোনো কন্টেন্ট নেই</div>`;
+      return;
+    }
+    
+    previewContent.innerHTML = `<div class="p-4 text-center text-text-muted"><i class="fa-solid fa-spinner fa-spin mr-2"></i> লোড হচ্ছে...</div>`;
+    
+    try {
+      const res = await fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wikitext, title: state.activeArticle.title })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        previewContent.innerHTML = data.html;
+      } else {
+        previewContent.innerHTML = `<div class="p-4 text-center text-destructive-red">লোড করতে ব্যর্থ হয়েছে: ${data.error || 'অজানা ত্রুটি'}</div>`;
+      }
+    } catch (err) {
+      previewContent.innerHTML = `<div class="p-4 text-center text-destructive-red">নেটওয়ার্ক ত্রুটি</div>`;
+    }
+  });
+}
 
 // Debounce function to limit autosave HTTP request frequency
 function debounce(func, delay) {
@@ -933,21 +1133,21 @@ async function checkActiveDraftProgress() {
       state.activeArticle.basetimestamp = draft.basetimestamp;
       
       // Update DOM
-      els.activeArticleTitle.innerText = draft.title;
+      if (els.activeArticleTitle) {
+        els.activeArticleTitle.innerText = draft.title;
+        els.activeArticleTitle.classList.remove('hidden');
+      }
       els.originalWikitext.value = draft.wikitext;
       els.polishedWikitext.value = draft.polishedWikitext || '';
       
-      els.correctAiBtn.classList.remove('disabled');
-      els.correctAiBtn.disabled = false;
+      safeSetDisabled(els.correctAiBtn, false);
       
       // Restore preview buttons state on draft recovery
       if (draft.wikitext && draft.wikitext.trim() !== '') {
-        els.previewOriginalBtn.classList.remove('disabled');
-        els.previewOriginalBtn.disabled = false;
+        safeSetDisabled(els.previewOriginalBtn, false);
       }
       if (draft.polishedWikitext && draft.polishedWikitext.trim() !== '') {
-        els.previewPolishedBtn.classList.remove('disabled');
-        els.previewPolishedBtn.disabled = false;
+        safeSetDisabled(els.previewPolishedBtn, false);
       }
       
       updateCharCounts();
@@ -957,7 +1157,7 @@ async function checkActiveDraftProgress() {
         triggerAiProcessingState(true);
         startPollingActiveDraft();
       } else if (draft.status === 'completed' && draft.polishedWikitext) {
-        if (state.user.loggedIn) {
+        if (state.user.loggedIn && els.publishCard) {
           els.publishCard.classList.remove('disabled');
         }
       }
@@ -991,10 +1191,9 @@ function startPollingActiveDraft() {
           triggerAiProcessingState(false);
           
           // Enable polished preview button
-          els.previewPolishedBtn.classList.remove('disabled');
-          els.previewPolishedBtn.disabled = false;
+          safeSetDisabled(els.previewPolishedBtn, false);
           
-          if (state.user.loggedIn && draft.polishedWikitext) {
+          if (state.user.loggedIn && draft.polishedWikitext && els.publishCard) {
             els.publishCard.classList.remove('disabled');
           }
           
@@ -1023,14 +1222,56 @@ function startPollingActiveDraft() {
 // Utility to switch frontend AI trigger button states
 function triggerAiProcessingState(isProcessing) {
   state.isProcessingAi = isProcessing;
+  
+  const correctAiBtn = els.correctAiBtn;
+  const mobileCorrectAiBtn = document.getElementById('mobileCorrectAiBtn');
+  
   if (isProcessing) {
-    els.correctAiBtn.disabled = true;
-    els.correctAiBtn.classList.add('btn-pulse-active');
-    els.correctAiBtn.innerHTML = `<i class="fa-solid fa-compass fa-spin"></i> পরিমার্জন হচ্ছে...`;
+    if (correctAiBtn) {
+      correctAiBtn.disabled = true;
+      correctAiBtn.classList.add('btn-pulse-active');
+      const icon = correctAiBtn.querySelector('.material-symbols-outlined');
+      if (icon) {
+        icon.innerText = 'autorenew';
+        icon.classList.add('animate-spin');
+      }
+      const label = correctAiBtn.querySelector('.group-hover\\:opacity-100');
+      if (label) {
+        label.innerText = 'Busy';
+        label.classList.remove('opacity-0');
+      }
+    }
+    
+    if (mobileCorrectAiBtn) {
+      mobileCorrectAiBtn.disabled = true;
+      mobileCorrectAiBtn.innerHTML = `
+        <span class="material-symbols-outlined text-xl animate-spin">autorenew</span>
+        <span>পরিমার্জন হচ্ছে...</span>
+      `;
+    }
   } else {
-    els.correctAiBtn.disabled = false;
-    els.correctAiBtn.classList.remove('btn-pulse-active');
-    els.correctAiBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> এআই সংশোধন শুরু করুন`;
+    if (correctAiBtn) {
+      correctAiBtn.disabled = false;
+      correctAiBtn.classList.remove('btn-pulse-active');
+      const icon = correctAiBtn.querySelector('.material-symbols-outlined');
+      if (icon) {
+        icon.innerText = 'auto_fix_high';
+        icon.classList.remove('animate-spin');
+      }
+      const label = correctAiBtn.querySelector('.group-hover\\:opacity-100');
+      if (label) {
+        label.innerText = 'Magic';
+        label.classList.add('opacity-0');
+      }
+    }
+    
+    if (mobileCorrectAiBtn) {
+      mobileCorrectAiBtn.disabled = false;
+      mobileCorrectAiBtn.innerHTML = `
+        <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
+        <span>এআই সংশোধন শুরু করুন</span>
+      `;
+    }
   }
 }
 
