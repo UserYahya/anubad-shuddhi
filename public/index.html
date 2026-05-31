@@ -94,8 +94,8 @@
                 </span>
                 <div class="hidden md:flex gap-6">
                     <a class="text-primary border-b-2 border-primary font-bold pb-1 font-label-mono text-xs" href="#">Dashboard</a>
-                    <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-xs" href="#">Review Category</a>
-                    <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-xs" href="#">Documentation</a>
+                    <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/lcpg" target="_blank">Review Category</a>
+                    <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-xs" href="https://bn.wikipedia.org/s/xqz6" target="_blank">Documentation</a>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -114,6 +114,15 @@
             </div>
         </nav>
     </header>
+
+    <!-- Mobile Navigation Menu Panel -->
+    <div id="mobileMenuPanel" class="hidden md:hidden bg-white border-b border-border-subtle px-margin-desktop py-4 space-y-4 shadow-md">
+        <div class="flex flex-col gap-2">
+            <a class="text-primary font-bold font-label-mono text-sm py-2 px-4 bg-surface-container rounded border-l-4 border-primary" href="#">Dashboard</a>
+            <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/lcpg" target="_blank">Review Category</a>
+            <a class="text-on-surface-variant hover:text-primary transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/xqz6" target="_blank">Documentation</a>
+        </div>
+    </div>
 
     <!-- Main Workspace Container -->
     <main class="flex-grow w-full max-w-container-max mx-auto px-margin-desktop py-8 space-y-6">
@@ -304,7 +313,7 @@
             <!-- Publish and Branding info actions -->
             <div class="flex items-center gap-4 w-full md:w-auto shrink-0" id="publishCard">
                 <p class="hidden lg:block font-label-mono text-[10px] text-text-muted max-w-[240px] text-right leading-normal">
-                    © Bengali Wikipedia Community. সেশন ডাটা বা ব্যক্তিগত কী জমা হয় না।
+                    © Bengali Wikipedia Community. <a href="https://meta.wikimedia.org/wiki/User_talk:Yahya" target="_blank" class="text-primary hover:underline font-bold">Developer Contact</a>
                 </p>
                 <button class="flex-grow md:flex-none flex items-center justify-center gap-2 bg-primary text-on-primary px-8 py-3.5 font-bold text-sm hover:opacity-90 active:scale-95 transition-all rounded disabled" id="publishBtn" disabled>
                     <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span>

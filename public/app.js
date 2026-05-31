@@ -116,6 +116,18 @@ function safeSetDisabled(el, disabled) {
   }
 }
 
+// Safely toggle the publish card panel and button enabled states together
+function setPublishPanelEnabled(enabled) {
+  if (els.publishCard) {
+    if (enabled) {
+      els.publishCard.classList.remove('disabled');
+    } else {
+      els.publishCard.classList.add('disabled');
+    }
+  }
+  safeSetDisabled(els.publishBtn, !enabled);
+}
+
 // ==========================================
 // 1. DYNAMIC TOAST SYSTEM (Alert Overlays)
 // ==========================================
@@ -314,9 +326,7 @@ async function fetchArticle(title) {
     safeSetDisabled(els.previewPolishedBtn, true);
     
     // Reset Publish pane
-    if (els.publishCard) {
-      els.publishCard.classList.add('disabled');
-    }
+    setPublishPanelEnabled(false);
 
     // Update character counts
     updateCharCounts();
@@ -373,9 +383,9 @@ async function correctWikitext() {
     safeSetDisabled(els.previewPolishedBtn, false);
     
     // Enable Publish Panel
-    if (state.user.loggedIn && els.publishCard) {
-      els.publishCard.classList.remove('disabled');
-    } else if (!state.user.loggedIn) {
+    if (state.user.loggedIn) {
+      setPublishPanelEnabled(true);
+    } else {
       showToast('লগইন করুন', 'পরিমার্জিত সংস্করণ প্রকাশ করতে হলে আপনাকে উইকিপিডিয়া একাউন্টে লগইন করতে হবে।', 'info');
     }
 
@@ -411,8 +421,8 @@ async function publishToWikipedia() {
   }
 
   state.isPublishing = true;
-  els.publishBtn.disabled = true;
-  els.publishBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> উইকিপিডিয়ায় আপলোড হচ্ছে...`;
+  safeSetDisabled(els.publishBtn, true);
+  els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg animate-spin">autorenew</span><span>উইকিপিডিয়ায় সংরক্ষণ করা হচ্ছে...</span>`;
 
   try {
     const payload = {
@@ -450,21 +460,25 @@ async function publishToWikipedia() {
     // Reset local title and wikitext states since it has been published
     state.activeArticle.title = null;
     state.activeArticle.wikitext = '';
-    els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
+    
+    if (els.activeArticleTitle) {
+      els.activeArticleTitle.innerText = 'কোনো নিবন্ধ নির্বাচিত নেই';
+      els.activeArticleTitle.classList.add('hidden');
+    }
+    
     els.originalWikitext.value = '';
     els.polishedWikitext.value = '';
-    els.correctAiBtn.classList.add('disabled');
-    els.correctAiBtn.disabled = true;
+    safeSetDisabled(els.correctAiBtn, true);
 
     // Disable further publishing till next fetch
-    els.publishCard.classList.add('disabled');
+    setPublishPanelEnabled(false);
   } catch (err) {
     console.error('Publish error:', err);
     showToast('প্রকাশ ত্রুটি', err.message || 'উইকিপিডিয়ায় নিবন্ধটি সংরক্ষণ করতে ব্যর্থ হয়েছে।', 'error');
   } finally {
     state.isPublishing = false;
-    els.publishBtn.disabled = false;
-    els.publishBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> উইকিপিডিয়ায় পোস্ট করুন`;
+    safeSetDisabled(els.publishBtn, false);
+    els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span><span>উইকিপিডিয়ায় সংরক্ষণ করুন</span>`;
   }
 }
 
@@ -532,7 +546,7 @@ function renderAuthUI() {
     
     // Enable Publish Panel if article is already polished
     if (els.polishedWikitext.value.trim() !== '' && !state.isProcessingAi) {
-      els.publishCard.classList.remove('disabled');
+      setPublishPanelEnabled(true);
     }
   } else {
     // Show forced login locked screen overlay
@@ -548,7 +562,7 @@ function renderAuthUI() {
         <span>উইকিপিডিয়া লগইন</span>
       </a>
     `;
-    els.publishCard.classList.add('disabled');
+    setPublishPanelEnabled(false);
   }
 }
 
@@ -674,17 +688,17 @@ if (els.btnToggleSuggestions && els.suggestionsPanel) {
   });
 }
 
-// Mobile Sidebar Toggle
+// Mobile Navigation Menu Toggle
 if (els.sidebarToggle) {
   els.sidebarToggle.addEventListener('click', () => {
-    if (els.appSidebar) {
-      els.appSidebar.classList.add('active');
+    const mobileMenuPanel = document.getElementById('mobileMenuPanel');
+    if (mobileMenuPanel) {
+      const isHidden = mobileMenuPanel.classList.toggle('hidden');
+      const icon = els.sidebarToggle.querySelector('span');
+      if (icon) {
+        icon.innerText = isHidden ? 'menu' : 'close';
+      }
     }
-    if (els.appOverlay) {
-      els.appOverlay.classList.remove('hidden');
-      els.appOverlay.classList.add('active');
-    }
-    document.body.classList.add('drawer-open');
   });
 }
 
@@ -1157,8 +1171,8 @@ async function checkActiveDraftProgress() {
         triggerAiProcessingState(true);
         startPollingActiveDraft();
       } else if (draft.status === 'completed' && draft.polishedWikitext) {
-        if (state.user.loggedIn && els.publishCard) {
-          els.publishCard.classList.remove('disabled');
+        if (state.user.loggedIn) {
+          setPublishPanelEnabled(true);
         }
       }
     }
@@ -1193,8 +1207,8 @@ function startPollingActiveDraft() {
           // Enable polished preview button
           safeSetDisabled(els.previewPolishedBtn, false);
           
-          if (state.user.loggedIn && draft.polishedWikitext && els.publishCard) {
-            els.publishCard.classList.remove('disabled');
+          if (state.user.loggedIn && draft.polishedWikitext) {
+            setPublishPanelEnabled(true);
           }
           
           showToast('পরিমার্জন সম্পন্ন', 'সার্ভার-সাইডে এআই সংশোধন সফলভাবে শেষ হয়েছে!', 'success');
