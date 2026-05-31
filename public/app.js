@@ -84,6 +84,7 @@ const els = {
   sidebarToggle: document.getElementById('sidebarToggle'),
   darkModeToggle: document.getElementById('darkModeToggle'),
   mobileDarkModeToggle: document.getElementById('mobileDarkModeToggle'),
+  mobileCorrectAiBtn: document.getElementById('mobileCorrectAiBtn'),
   appSidebar: document.querySelector('.app-sidebar'), // Legacy fallback
   tabOriginalBtn: document.getElementById('tabOriginalBtn'),
   tabPolishedBtn: document.getElementById('tabPolishedBtn'),
@@ -322,6 +323,7 @@ async function fetchArticle(title) {
     
     // Enable AI buttons
     safeSetDisabled(els.correctAiBtn, false);
+    safeSetDisabled(els.mobileCorrectAiBtn, false);
     
     // Enable original preview button, disable polished preview
     safeSetDisabled(els.previewOriginalBtn, false);
@@ -471,6 +473,7 @@ async function publishToWikipedia() {
     els.originalWikitext.value = '';
     els.polishedWikitext.value = '';
     safeSetDisabled(els.correctAiBtn, true);
+    safeSetDisabled(els.mobileCorrectAiBtn, true);
 
     // Disable further publishing till next fetch
     setPublishPanelEnabled(false);
@@ -878,6 +881,9 @@ if (els.articleSearchInput) {
 if (els.correctAiBtn) {
   els.correctAiBtn.addEventListener('click', correctWikitext);
 }
+if (els.mobileCorrectAiBtn) {
+  els.mobileCorrectAiBtn.addEventListener('click', correctWikitext);
+}
 
 // Original editor input updates word counters and autosaves progress
 if (els.originalWikitext) {
@@ -895,6 +901,10 @@ if (els.originalWikitext) {
         els.correctAiBtn.classList.remove('disabled');
         els.correctAiBtn.disabled = false;
       }
+      if (els.mobileCorrectAiBtn) {
+        els.mobileCorrectAiBtn.classList.remove('disabled');
+        els.mobileCorrectAiBtn.disabled = false;
+      }
     } else if (els.originalWikitext.value.trim() === '' && state.activeArticle.title === 'Untitled') {
       state.activeArticle.title = null;
       if (els.activeArticleTitle) {
@@ -904,6 +914,10 @@ if (els.originalWikitext) {
       if (els.correctAiBtn) {
         els.correctAiBtn.classList.add('disabled');
         els.correctAiBtn.disabled = true;
+      }
+      if (els.mobileCorrectAiBtn) {
+        els.mobileCorrectAiBtn.classList.add('disabled');
+        els.mobileCorrectAiBtn.disabled = true;
       }
     }
     
@@ -1207,6 +1221,7 @@ async function checkActiveDraftProgress() {
       els.polishedWikitext.value = draft.polishedWikitext || '';
       
       safeSetDisabled(els.correctAiBtn, false);
+      safeSetDisabled(els.mobileCorrectAiBtn, false);
       
       // Restore preview buttons state on draft recovery
       if (draft.wikitext && draft.wikitext.trim() !== '') {
