@@ -415,7 +415,7 @@ app.get('/api/suggestions', requireAuth, async (req, res) => {
 
   try {
     // Bangla Wikipedia API category endpoint
-    // Category: বিষয়শ্রেণী:অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ (Articles needing cleanup after translation)
+    // Category: বিষয়শ্রেণী:অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ (Articles needing cleanup after translat[...]
     const categoryName = 'বিষয়শ্রেণী:অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ';
     const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
     
@@ -674,18 +674,22 @@ app.post('/api/correct', requireAuth, async (req, res) => {
       console.log(`[Gemini SDK] Initializing client with key. Target Model: ${targetModel}`);
       const ai = new GoogleGenAI({ apiKey: geminiKey });
 
-      const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha). 
+      const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষ[...]
 
 CRITICAL RULES:
 1. In case of complex or convoluted sentences, you should break them down into multiple shorter, simpler sentences to keep the flow natural, clear, and readable.
-2. For Wikilinks with suffixes (e.g., [[নজরুল]]-এর or [[নজরুল]]এর or [[নজরুল]]কে), do NOT write them as [[নজরুল]]-Suffix. Instead, format them beautifully inside the brackets as [[নজরুল|নজরুলের]] or [[নজরুল|নজরুলকে]]. Keep the link target identical but adjust the display text to include the suffixes naturally.
-3. You must perfectly preserve ALL other Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
+2. For Wikilinks with suffixes (e.g., [[নজরুল]]-এর or [[নজরুল]]এর or [[নজরুল]]কে), do NOT write them as [[নজরুল]]-Suffix. Instead, format them [...]
+3. You must perfectly preserve ALL other Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or[...]
 
       console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
       
+      // This line removes "{{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}}" tags from the output wikitext section
+      let modifiedWikitext = removeTranslationTags(wikitext);
+
+      // We are passing modifiedWikitext so that the removal should happen automatically during output generation.
       const response = await ai.models.generateContent({
         model: targetModel,
-        contents: wikitext,
+        contents: modifiedWikitext,
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.2
@@ -764,6 +768,11 @@ CRITICAL RULES:
   }
 });
 
+// Function to remove {{যান্ত্রিক অনুবাদ}} and {{রুক্ষ অনুবাদ}} tags from wikitext
+function removeTranslationTags(str) {
+  return str.replace(/\{\{(যান্ত্রিক অনুবাদ|রুক্ষ অনুবাদ)\}\}/g, '').trim();
+}
+
 // ==========================================
 // 5. MEDIAWIKI API WRITE/EDIT PROXY
 // ==========================================
@@ -777,7 +786,7 @@ app.post('/api/publish', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing article title or wikitext payload.' });
   }
 
-  const editSummary = summary || '[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে';
+  const editSummary = summary || '[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত[...]
 
   // Mock Publishing Flow for Local Testing
   if (isMock) {
