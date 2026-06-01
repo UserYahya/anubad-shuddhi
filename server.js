@@ -683,9 +683,13 @@ CRITICAL RULES:
 
       console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
       
+      //This line removes "{{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}}" tags from the output wikitext section
+      let modifiedWikitext = removeTranslationTags(wikitext);
+
+      //We ar passing modifiedWikitext so that the removal should happen automatically during output generation.
       const response = await ai.models.generateContent({
         model: targetModel,
-        contents: wikitext,
+        contents: modifiedWikitext, 
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.2
@@ -763,6 +767,12 @@ CRITICAL RULES:
     res.status(500).json({ error: errorMessage });
   }
 });
+
+//Function to remove {{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}} tags from wikitext
+function removeTranslationTags(str) {
+  return str.replace(/\{\{(যান্ত্রিক অনুবাদ|রুক্ষ অনুবাদ)\}\}/g, '').trim();
+}
+
 
 // ==========================================
 // 5. MEDIAWIKI API WRITE/EDIT PROXY
