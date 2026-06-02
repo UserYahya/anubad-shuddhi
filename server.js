@@ -850,7 +850,7 @@ app.post('/api/publish', requireAuth, async (req, res) => {
   const sourceIndex = parseInt(source, 10) || 0;
   const projects = ['উইকিপিডিয়া', 'উইকিবই', 'উইকিউক্তি', 'উইকিভ্রমণ'];
   const projectName = projects[sourceIndex] || projects[0];
-  const editSummary = summary || `[[${projectName}:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে`;
+  const editSummary = summary || `[[:w:উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে`;
 
   const sources = [
     "https://bn.wikipedia.org/w/api.php",
