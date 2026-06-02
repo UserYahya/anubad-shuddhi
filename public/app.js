@@ -51,6 +51,7 @@ const els = {
   // Search
   articleSearchInput: document.getElementById('articleSearchInput'),
   fetchArticleBtn: document.getElementById('fetchArticleBtn'),
+  source: document.getElementById('source'),
 
   // Workspace
   activeArticleTitle: document.getElementById('activeArticleTitle'),
@@ -261,7 +262,8 @@ async function loadSuggestedArticles() {
   `;
 
   try {
-    const res = await fetch('/api/suggestions');
+    const sourceVal = els.source ? els.source.value : '0';
+    const res = await fetch(`/api/suggestions?source=${sourceVal}`);
     const data = await res.json();
     
     els.suggestionsList.innerHTML = '';
@@ -275,7 +277,8 @@ async function loadSuggestedArticles() {
       `;
       button.addEventListener('click', () => {
         els.articleSearchInput.value = article.title;
-        fetchArticle(article.title);
+        const currentSource = els.source ? els.source.value : '0';
+        fetchArticle(article.title, currentSource);
       });
       els.suggestionsList.appendChild(button);
     });
@@ -290,17 +293,21 @@ async function loadSuggestedArticles() {
 }
 
 // Fetch Article revision and wikitext content
-async function fetchArticle(title) {
+async function fetchArticle(title, source) {
   if (!title || title.trim() === '') {
     showToast('নিবন্ধের নাম অনুপস্থিত', 'অনুগ্রহ করে নিবন্ধের নাম টাইপ করুন বা তালিকা থেকে নির্বাচন করুন।', 'error');
     return;
+  }
+
+  if (source === undefined || source === null) {
+    source = els.source ? els.source.value : '0';
   }
 
   els.fetchArticleBtn.disabled = true;
   els.fetchArticleBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> লোড হচ্ছে...`;
 
   try {
-    const res = await fetch(`/api/article?title=${encodeURIComponent(title.trim())}`);
+    const res = await fetch(`/api/article?title=${encodeURIComponent(title.trim())}&source=${source}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -863,7 +870,8 @@ if (els.refreshSuggestions) {
 if (els.fetchArticleBtn) {
   els.fetchArticleBtn.addEventListener('click', () => {
     const title = els.articleSearchInput.value;
-    fetchArticle(title);
+    const sourceVal = els.source ? els.source.value : '0';
+    fetchArticle(title, sourceVal);
   });
 }
 
@@ -872,7 +880,17 @@ if (els.articleSearchInput) {
   els.articleSearchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const title = els.articleSearchInput.value;
-      fetchArticle(title);
+      const sourceVal = els.source ? els.source.value : '0';
+      fetchArticle(title, sourceVal);
+    }
+  });
+}
+
+// Source select dropdown change trigger
+if (els.source) {
+  els.source.addEventListener('change', () => {
+    if (els.suggestionsPanel && !els.suggestionsPanel.classList.contains('hidden')) {
+      loadSuggestedArticles();
     }
   });
 }
@@ -1309,7 +1327,7 @@ function triggerAiProcessingState(isProcessing) {
   
   if (isProcessing) {
     if (correctAiBtn) {
-      correctAiBtn.disabled = true;
+      safeSetDisabled(correctAiBtn, true);
       correctAiBtn.classList.add('btn-pulse-active');
       const icon = correctAiBtn.querySelector('.material-symbols-outlined');
       if (icon) {
@@ -1324,7 +1342,7 @@ function triggerAiProcessingState(isProcessing) {
     }
     
     if (mobileCorrectAiBtn) {
-      mobileCorrectAiBtn.disabled = true;
+      safeSetDisabled(mobileCorrectAiBtn, true);
       mobileCorrectAiBtn.innerHTML = `
         <span class="material-symbols-outlined text-xl animate-spin">autorenew</span>
         <span>পরিমার্জন হচ্ছে...</span>
@@ -1332,7 +1350,7 @@ function triggerAiProcessingState(isProcessing) {
     }
   } else {
     if (correctAiBtn) {
-      correctAiBtn.disabled = false;
+      safeSetDisabled(correctAiBtn, false);
       correctAiBtn.classList.remove('btn-pulse-active');
       const icon = correctAiBtn.querySelector('.material-symbols-outlined');
       if (icon) {
@@ -1347,7 +1365,7 @@ function triggerAiProcessingState(isProcessing) {
     }
     
     if (mobileCorrectAiBtn) {
-      mobileCorrectAiBtn.disabled = false;
+      safeSetDisabled(mobileCorrectAiBtn, false);
       mobileCorrectAiBtn.innerHTML = `
         <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
         <span>এআই সংশোধন শুরু করুন</span>

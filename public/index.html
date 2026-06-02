@@ -201,6 +201,14 @@
                     <input class="w-full border border-border-subtle dark:border-[#2d323f] p-4 pr-24 font-body-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white dark:bg-[#161a21] text-on-surface dark:text-[#f8f9fa] rounded transition-colors duration-300" placeholder="Enter article name (e.g., Medicine)..." type="text" id="articleSearchInput"/>
                     <button class="absolute right-2 top-2 px-5 py-2.5 bg-primary text-on-primary font-bold rounded-sm text-xs hover:opacity-90 active:scale-95 transition-all" id="fetchArticleBtn">Fetch</button>
                 </div>
+                <div class="w-full sm:w-48 relative">
+                    <select class="w-full border border-border-subtle dark:border-[#2d323f] p-4 font-body-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white dark:bg-[#161a21] text-on-surface dark:text-[#f8f9fa] rounded transition-colors duration-300 cursor-pointer" id="source">
+                        <option value="0" selected>উইকিপিডিয়া</option>
+                        <option value="1">উইকিবই</option>
+                        <option value="2">উইকিউক্তি</option>
+                        <option value="3">উইকিভ্রমণ</option>
+                    </select>
+                </div>
                 <button class="flex items-center justify-center gap-2 px-6 py-4 border border-primary dark:border-[#4c8cff] text-primary dark:text-[#4c8cff] font-bold hover:bg-primary-container/10 dark:hover:bg-primary-container/20 transition-colors bg-white dark:bg-[#161a21] rounded text-sm whitespace-nowrap active:scale-95" id="btnToggleSuggestions">
                     <span class="material-symbols-outlined" data-icon="category">category</span>
                     <span>পরামর্শকৃত নিবন্ধ</span>

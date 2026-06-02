@@ -19,8 +19,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' })); //Increase the limit for large wiki texts
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure Sessions (In-memory store, secure session options)
@@ -405,6 +405,41 @@ app.get('/api/key/models', requireAuth, async (req, res) => {
 
 // Fetch Suggested Articles from Category members
 app.get('/api/suggestions', requireAuth, async (req, res) => {
+  const sourceIndex = parseInt(req.query.source, 10) || 0;
+
+  if (sourceIndex === 1) {
+    // bn.wikibooks.org
+    const wikibooksSuggestions = [
+      { title: 'গণিত', snippet: 'Best for structured learning content (bn.wikibooks.org)' },
+      { title: 'কম্পিউটার প্রোগ্রামিং', snippet: 'Best for structured learning content (bn.wikibooks.org)' },
+      { title: 'ইংরেজি ব্যাকরণ', snippet: 'Best for structured learning content (bn.wikibooks.org)' },
+      { title: 'পাইথন প্রোগ্রামিং', snippet: 'Best for structured learning content (bn.wikibooks.org)' }
+    ];
+    return res.json({ source: 'wikibooks', articles: wikibooksSuggestions });
+  }
+
+  if (sourceIndex === 2) {
+    // bn.wikiquote.org
+    const wikiquoteSuggestions = [
+      { title: 'নেতাজি', snippet: 'Best for quotes (bn.wikiquote.org)' },
+      { title: 'রবীন্দ্রনাথ ঠাকুর', snippet: 'Best for quotes (bn.wikiquote.org)' },
+      { title: 'বিজ্ঞান', snippet: 'Best for quotes (bn.wikiquote.org)' },
+      { title: 'জীবন', snippet: 'Best for quotes (bn.wikiquote.org)' }
+    ];
+    return res.json({ source: 'wikiquote', articles: wikiquoteSuggestions });
+  }
+
+  if (sourceIndex === 3) {
+    // bn.wikivoyage.org
+    const wikivoyageSuggestions = [
+      { title: 'ঢাকা', snippet: 'Best for travel guides (bn.wikivoyage.org)' },
+      { title: 'কলকাতা', snippet: 'Best for travel guides (bn.wikivoyage.org)' },
+      { title: 'প্যারিস', snippet: 'Best for travel guides (bn.wikivoyage.org)' },
+      { title: 'লন্ডন', snippet: 'Best for travel guides (bn.wikivoyage.org)' }
+    ];
+    return res.json({ source: 'wikivoyage', articles: wikivoyageSuggestions });
+  }
+
   const backupSuggestions = [
     { title: 'কৃত্রিম বুদ্ধিমত্তা', snippet: 'Artificial Intelligence - needs narrative flow improvement.' },
     { title: 'মেশিন লার্নিং', snippet: 'Machine Learning - machine translated terminology polishing.' },
@@ -413,11 +448,18 @@ app.get('/api/suggestions', requireAuth, async (req, res) => {
     { title: 'মঙ্গল গ্রহ', snippet: 'Mars planet - articles flagged with translation review tags.' }
   ];
 
+  const sources = [
+    "https://bn.wikipedia.org/w/api.php",
+    "https://bn.wikibooks.org/w/api.php",
+    "https://bn.wikiquote.org/w/api.php",
+    "https://bn.wikivoyage.org/w/api.php"
+  ];
+
   try {
     // Bangla Wikipedia API category endpoint
     // Category: বিষয়শ্রেণী:অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ (Articles needing cleanup after translation)
     const categoryName = 'বিষয়শ্রেণী:অনুবাদের পর নিরীক্ষণ জরুরি নিবন্ধসমূহ';
-    const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
+    const wikiUrl = sources[sourceIndex] || sources[0];
     
     const response = await axios.get(wikiUrl, {
       params: {
@@ -457,13 +499,21 @@ app.get('/api/suggestions', requireAuth, async (req, res) => {
 
 // Fetch Raw Wikitext, revision ID, and timestamp for conflict checks
 app.get('/api/article', requireAuth, async (req, res) => {
-  const { title } = req.query;
+  const { title, source } = req.query;
   if (!title) {
     return res.status(400).json({ error: 'Article title is required.' });
   }
 
+  const sources = [
+    "https://bn.wikipedia.org/w/api.php",
+    "https://bn.wikibooks.org/w/api.php",
+    "https://bn.wikiquote.org/w/api.php",
+    "https://bn.wikivoyage.org/w/api.php"
+  ];
+
   try {
-    const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
+    const sourceIndex = parseInt(source, 10) || 0;
+    const wikiUrl = sources[sourceIndex] || sources[0];
     const response = await axios.get(wikiUrl, {
       params: {
         action: 'query',
@@ -674,7 +724,7 @@ app.post('/api/correct', requireAuth, async (req, res) => {
       console.log(`[Gemini SDK] Initializing client with key. Target Model: ${targetModel}`);
       const ai = new GoogleGenAI({ apiKey: geminiKey });
 
-      const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha).
+      const systemInstruction = `You are an expert Bangla Wikipedia editor. Rewrite the following machine-translated Bangla text into natural, encyclopedic standard Bangla (চলিত ভাষা/Chalita bhasha). 
 
 CRITICAL RULES:
 1. In case of complex or convoluted sentences, you should break them down into multiple shorter, simpler sentences to keep the flow natural, clear, and readable.
@@ -683,13 +733,13 @@ CRITICAL RULES:
 
       console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
       
-      // This line removes "{{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}}" tags from the output wikitext section
+      //This line removes "{{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}}" tags from the output wikitext section
       let modifiedWikitext = removeTranslationTags(wikitext);
 
-      // We are passing modifiedWikitext so that the removal should happen automatically during output generation.
+      //We ar passing modifiedWikitext so that the removal should happen automatically during output generation.
       const response = await ai.models.generateContent({
         model: targetModel,
-        contents: modifiedWikitext,
+        contents: modifiedWikitext, 
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.2
@@ -768,10 +818,11 @@ CRITICAL RULES:
   }
 });
 
-// Function to remove {{যান্ত্রিক অনুবাদ}} and {{রুক্ষ অনুবাদ}} tags from wikitext
+//Function to remove {{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}} tags from wikitext
 function removeTranslationTags(str) {
   return str.replace(/\{\{(যান্ত্রিক অনুবাদ|রুক্ষ অনুবাদ)\}\}/g, '').trim();
 }
+
 
 // ==========================================
 // 5. MEDIAWIKI API WRITE/EDIT PROXY
