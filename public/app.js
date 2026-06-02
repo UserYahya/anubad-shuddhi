@@ -14,7 +14,8 @@ const state = {
     title: null,
     wikitext: '',
     baserevisionid: null,
-    basetimestamp: null
+    basetimestamp: null,
+    source: '0'
   },
   isProcessingAi: false,
   isPublishing: false
@@ -120,6 +121,26 @@ function safeSetDisabled(el, disabled) {
   }
 }
 
+function getPublishButtonText(actionState) {
+  const sourceVal = state.activeArticle.source || (els.source ? els.source.value : '0');
+  const projectNames = {
+    '0': 'উইকিপিডিয়া',
+    '1': 'উইকিবই',
+    '2': 'উইকিউক্তি',
+    '3': 'উইকিভ্রমণ'
+  };
+  const projectName = projectNames[sourceVal] || 'উইকিপিডিয়া';
+  
+  const baseName = projectName === 'উইকিবই' ? 'উইকিবইয়ে' : 
+                   (projectName === 'উইকিউক্তি' ? 'উইকিউক্তিতে' : 
+                   (projectName === 'উইকিভ্রমণ' ? 'উইকিভ্রমণে' : 'উইকিপিডিয়ায়'));
+
+  if (actionState === 'saving') {
+    return `${baseName} সংরক্ষণ করা হচ্ছে...`;
+  }
+  return `${baseName} সংরক্ষণ করুন`;
+}
+
 // Safely toggle the publish card panel and button enabled states together
 function setPublishPanelEnabled(enabled) {
   if (els.publishCard) {
@@ -130,6 +151,9 @@ function setPublishPanelEnabled(enabled) {
     }
   }
   safeSetDisabled(els.publishBtn, !enabled);
+  if (els.publishBtn) {
+    els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span><span>${getPublishButtonText('idle')}</span>`;
+  }
 }
 
 // ==========================================
@@ -319,6 +343,7 @@ async function fetchArticle(title, source) {
     state.activeArticle.wikitext = data.wikitext;
     state.activeArticle.baserevisionid = data.baserevisionid;
     state.activeArticle.basetimestamp = data.basetimestamp;
+    state.activeArticle.source = source;
 
     // Load to original editor and clear corrected editor
     if (els.activeArticleTitle) {
@@ -433,7 +458,7 @@ async function publishToWikipedia() {
 
   state.isPublishing = true;
   safeSetDisabled(els.publishBtn, true);
-  els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg animate-spin">autorenew</span><span>উইকিপিডিয়ায় সংরক্ষণ করা হচ্ছে...</span>`;
+  els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg animate-spin">autorenew</span><span>${getPublishButtonText('saving')}</span>`;
 
   try {
     const payload = {
@@ -441,7 +466,8 @@ async function publishToWikipedia() {
       wikitext: polishedText,
       baserevisionid: state.activeArticle.baserevisionid,
       basetimestamp: state.activeArticle.basetimestamp,
-      summary: els.editSummaryInput.value
+      summary: els.editSummaryInput.value,
+      source: state.activeArticle.source || (els.source ? els.source.value : '0')
     };
 
     const res = await fetch('/api/publish', {
@@ -490,7 +516,7 @@ async function publishToWikipedia() {
   } finally {
     state.isPublishing = false;
     safeSetDisabled(els.publishBtn, false);
-    els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span><span>উইকিপিডিয়ায় সংরক্ষণ করুন</span>`;
+    els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span><span>${getPublishButtonText('idle')}</span>`;
   }
 }
 
@@ -892,6 +918,10 @@ if (els.source) {
     if (els.suggestionsPanel && !els.suggestionsPanel.classList.contains('hidden')) {
       loadSuggestedArticles();
     }
+    state.activeArticle.source = els.source.value;
+    if (els.publishBtn) {
+      els.publishBtn.innerHTML = `<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span><span>${getPublishButtonText('idle')}</span>`;
+    }
   });
 }
 
@@ -1047,7 +1077,11 @@ if (els.btnOriginalEditor && els.btnOriginalPreview) {
       const res = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wikitext, title: state.activeArticle.title })
+        body: JSON.stringify({
+          wikitext,
+          title: state.activeArticle.title,
+          source: state.activeArticle.source || (els.source ? els.source.value : '0')
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -1102,7 +1136,11 @@ if (els.btnModeEditor && els.btnModePreview) {
       const res = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wikitext, title: state.activeArticle.title })
+        body: JSON.stringify({
+          wikitext,
+          title: state.activeArticle.title,
+          source: state.activeArticle.source || (els.source ? els.source.value : '0')
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -1146,7 +1184,8 @@ const saveProgressToServer = debounce(async () => {
         wikitext,
         polishedWikitext,
         baserevisionid,
-        basetimestamp
+        basetimestamp,
+        source: state.activeArticle.source || (els.source ? els.source.value : '0')
       })
     });
     if (res.ok) {
@@ -1183,7 +1222,11 @@ async function showPreview(wikitext, title) {
     const res = await fetch('/api/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wikitext, title: articleTitle })
+      body: JSON.stringify({
+        wikitext,
+        title: articleTitle,
+        source: state.activeArticle.source || (els.source ? els.source.value : '0')
+      })
     });
 
     const data = await res.json();
@@ -1229,6 +1272,10 @@ async function checkActiveDraftProgress() {
       state.activeArticle.wikitext = draft.wikitext;
       state.activeArticle.baserevisionid = draft.baserevisionid;
       state.activeArticle.basetimestamp = draft.basetimestamp;
+      state.activeArticle.source = draft.source || '0';
+      if (els.source) {
+        els.source.value = draft.source || '0';
+      }
       
       // Update DOM
       if (els.activeArticleTitle) {

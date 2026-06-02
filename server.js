@@ -588,7 +588,7 @@ app.get('/api/article/active', requireAuth, (req, res) => {
 
 // Autosave Polished Text Draft in Server Session
 app.post('/api/article/save-progress', requireAuth, (req, res) => {
-  const { title, wikitext, polishedWikitext, baserevisionid, basetimestamp } = req.body;
+  const { title, wikitext, polishedWikitext, baserevisionid, basetimestamp, source } = req.body;
   
   let draft = getActiveDraft(req.session.username);
   if (!draft) {
@@ -598,6 +598,7 @@ app.post('/api/article/save-progress', requireAuth, (req, res) => {
       polishedWikitext: polishedWikitext || '',
       baserevisionid: baserevisionid || null,
       basetimestamp: basetimestamp || null,
+      source: source || '0',
       status: 'idle'
     };
   } else {
@@ -606,6 +607,7 @@ app.post('/api/article/save-progress', requireAuth, (req, res) => {
     if (polishedWikitext !== undefined) draft.polishedWikitext = polishedWikitext;
     if (baserevisionid !== undefined) draft.baserevisionid = baserevisionid;
     if (basetimestamp !== undefined) draft.basetimestamp = basetimestamp;
+    if (source !== undefined) draft.source = source;
   }
   
   if (draft.status === 'idle' && draft.polishedWikitext) {
@@ -618,13 +620,21 @@ app.post('/api/article/save-progress', requireAuth, (req, res) => {
 
 // Proxy API to Parse Wikitext to Wikipedia HTML
 app.post('/api/preview', requireAuth, async (req, res) => {
-  const { wikitext, title } = req.body;
+  const { wikitext, title, source } = req.body;
   if (!wikitext) {
     return res.status(400).json({ error: 'Wikitext is required for preview.' });
   }
 
+  const sources = [
+    "https://bn.wikipedia.org/w/api.php",
+    "https://bn.wikibooks.org/w/api.php",
+    "https://bn.wikiquote.org/w/api.php",
+    "https://bn.wikivoyage.org/w/api.php"
+  ];
+
   try {
-    const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
+    const sourceIndex = parseInt(source, 10) || 0;
+    const wikiUrl = sources[sourceIndex] || sources[0];
     const response = await axios.post(wikiUrl, new URLSearchParams({
       action: 'parse',
       text: wikitext,
@@ -829,7 +839,7 @@ function removeTranslationTags(str) {
 // ==========================================
 
 app.post('/api/publish', requireAuth, async (req, res) => {
-  const { title, wikitext, baserevisionid, basetimestamp, summary } = req.body;
+  const { title, wikitext, baserevisionid, basetimestamp, summary, source } = req.body;
   const isMock = !!req.session.isMock;
   const oauthToken = req.session.oauthToken;
 
@@ -837,7 +847,18 @@ app.post('/api/publish', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing article title or wikitext payload.' });
   }
 
-  const editSummary = summary || '[[উইকিপিডিয়া:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে';
+  const sourceIndex = parseInt(source, 10) || 0;
+  const projects = ['উইকিপিডিয়া', 'উইকিবই', 'উইকিউক্তি', 'উইকিভ্রমণ'];
+  const projectName = projects[sourceIndex] || projects[0];
+  const editSummary = summary || `[[${projectName}:অনুবাদ-শুদ্ধি|অনুবাদ-শুদ্ধি]] ব্যবহার করে যান্ত্রিক অনুবাদ সংশোধন করা হয়েছে`;
+
+  const sources = [
+    "https://bn.wikipedia.org/w/api.php",
+    "https://bn.wikibooks.org/w/api.php",
+    "https://bn.wikiquote.org/w/api.php",
+    "https://bn.wikivoyage.org/w/api.php"
+  ];
+  const wikiUrl = sources[sourceIndex] || sources[0];
 
   // Mock Publishing Flow for Local Testing
   if (isMock) {
@@ -858,7 +879,7 @@ app.post('/api/publish', requireAuth, async (req, res) => {
       success: true,
       mock: true,
       publishedCount: newCount,
-      message: `[MOCK] Successfully saved edit to "${title}" on Bangla Wikipedia! (Mock Session active)`,
+      message: `[MOCK] Successfully saved edit to "${title}" on Bangla ${projectName}! (Mock Session active)`,
       info: {
         title,
         revisionId: Math.floor(Math.random() * 9000000) + 1000000,
@@ -867,9 +888,8 @@ app.post('/api/publish', requireAuth, async (req, res) => {
     });
   }
 
-  // Real Edit Flow on Bangla Wikipedia
+  // Real Edit Flow on Bangla Wikipedia / Wikimedia Projects
   try {
-    const wikiUrl = 'https://bn.wikipedia.org/w/api.php';
     const authHeaders = {
       'Authorization': `Bearer ${oauthToken}`,
       'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
