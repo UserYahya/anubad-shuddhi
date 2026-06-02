@@ -476,25 +476,7 @@ body.drawer-open {
   }
 }
 
-/* Mobile Collapsing Breakpoint (< 640px) */
-@media (max-width: 640px) {
-  #keyStatusText {
-    display: none !important;
-  }
-  
-  .user-profile-badge {
-    padding: 0.25rem 0.5rem !important;
-    gap: 0.35rem !important;
-  }
-  
-  .profile-info {
-    display: none !important;
-  }
-  
-  .profile-stats {
-    display: none !important;
-  }
-}
+
 
 /* ==========================================================================
    6. Premium Dark Mode Accents & Custom Style Overrides

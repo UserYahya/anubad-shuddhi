@@ -85,10 +85,6 @@
     <header class="bg-surface dark:bg-[#161a21] border-b border-border-subtle dark:border-[#2d323f] sticky top-0 z-50 transition-colors duration-300">
         <nav class="flex justify-between items-center px-4 md:px-8 w-full max-w-container-max mx-auto h-16">
             <div class="flex items-center gap-8">
-                <!-- Hamburger menu for mobile navigation -->
-                <button class="md:hidden flex items-center justify-center p-2 rounded text-on-surface-variant dark:text-[#c3c6d5] hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors" id="sidebarToggle" title="মেনু">
-                    <span class="material-symbols-outlined">menu</span>
-                </button>
                 <span class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-on-surface dark:text-[#f8f9fa] flex items-center gap-2 cursor-pointer">
                     অনুবাদ-শুদ্ধি
                 </span>
@@ -111,27 +107,30 @@
                 </button>
 
                 <!-- MediaWiki Auth State Wrapper -->
-                <div class="auth-section" id="authSection">
+                <div class="auth-section hidden md:block" id="authSection">
                     <button class="bg-primary dark:bg-[#3366cc] text-on-primary px-4 py-2 font-label-mono text-xs font-bold hover:opacity-90 active:scale-95 transition-all" id="wikiLoginBtn">
                         Login
                     </button>
                 </div>
+
+                <!-- Three Dot menu for mobile navigation -->
+                <button class="md:hidden flex items-center justify-center p-2 rounded text-on-surface-variant dark:text-[#c3c6d5] hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors cursor-pointer" id="sidebarToggle" title="মেনু">
+                    <span class="material-symbols-outlined text-xl">more_vert</span>
+                </button>
             </div>
         </nav>
     </header>
 
     <!-- Mobile Navigation Menu Panel -->
     <div id="mobileMenuPanel" class="hidden md:hidden bg-white dark:bg-[#161a21] border-b border-border-subtle dark:border-[#2d323f] px-4 py-4 space-y-4 shadow-md transition-colors duration-300">
+        <!-- Auth Section for Mobile Menu -->
+        <div id="mobileAuthSection" class="auth-section border-b border-border-subtle dark:border-[#2d323f] pb-3 px-4 flex justify-center">
+            <!-- Dynamically populated by renderAuthUI() -->
+        </div>
         <div class="flex flex-col gap-2">
             <a class="text-primary dark:text-[#4c8cff] font-bold font-label-mono text-sm py-2 px-4 bg-surface-container dark:bg-[#1e2530] rounded border-l-4 border-primary dark:border-[#4c8cff]" href="#">ড্যাশবোর্ড</a>
             <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/lcpg" target="_blank">যেসব নিবন্ধ সংশোধন প্রয়োজন</a>
             <a class="text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white transition-colors font-label-mono text-sm py-2 px-4" href="https://bn.wikipedia.org/s/xqz6" target="_blank">নির্দেশিকা</a>
-        </div>
-        <div class="flex justify-between items-center border-t border-border-subtle dark:border-[#2d323f] pt-3 px-4">
-            <span class="font-label-mono text-xs text-on-surface-variant dark:text-[#c3c6d5]">ডার্ক মোড</span>
-            <button id="mobileDarkModeToggle" class="p-2 text-on-surface-variant dark:text-[#c3c6d5] hover:text-primary dark:hover:text-white rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="ডার্ক মোড টগল করুন">
-                <span class="material-symbols-outlined text-xl">dark_mode</span>
-            </button>
         </div>
     </div>
 

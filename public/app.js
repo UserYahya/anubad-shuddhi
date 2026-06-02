@@ -87,6 +87,7 @@ const els = {
   darkModeToggle: document.getElementById('darkModeToggle'),
   mobileDarkModeToggle: document.getElementById('mobileDarkModeToggle'),
   mobileCorrectAiBtn: document.getElementById('mobileCorrectAiBtn'),
+  mobileAuthSection: document.getElementById('mobileAuthSection'),
   appSidebar: document.querySelector('.app-sidebar'), // Legacy fallback
   tabOriginalBtn: document.getElementById('tabOriginalBtn'),
   tabPolishedBtn: document.getElementById('tabPolishedBtn'),
@@ -563,7 +564,7 @@ function renderAuthUI() {
 
     // Show Wikipedia account details & stats badge
     const labelText = state.user.isMock ? 'মক সেশন' : 'উইকি এডিটর';
-    els.authSection.innerHTML = `
+    const profileHtml = `
       <div class="user-profile-badge">
         <div class="profile-avatar">
           <i class="fa-solid fa-user"></i>
@@ -581,6 +582,8 @@ function renderAuthUI() {
         </a>
       </div>
     `;
+    if (els.authSection) els.authSection.innerHTML = profileHtml;
+    if (els.mobileAuthSection) els.mobileAuthSection.innerHTML = profileHtml;
     
     // Enable Publish Panel if article is already polished
     if (els.polishedWikitext.value.trim() !== '' && !state.isProcessingAi) {
@@ -594,12 +597,14 @@ function renderAuthUI() {
     document.body.classList.add('drawer-open'); // Prevent back scrolling
 
     // Show Login trigger
-    els.authSection.innerHTML = `
+    const loginHtml = `
       <a href="/auth/mediawiki" class="btn btn-wiki-login" id="wikiLoginBtn">
         <i class="fa-brands fa-wikipedia-w"></i>
         <span>উইকিপিডিয়া লগইন</span>
       </a>
     `;
+    if (els.authSection) els.authSection.innerHTML = loginHtml;
+    if (els.mobileAuthSection) els.mobileAuthSection.innerHTML = loginHtml;
     setPublishPanelEnabled(false);
   }
 }
@@ -772,21 +777,16 @@ function initDarkMode() {
       document.documentElement.classList.add('light');
       localStorage.setItem('theme', 'light');
       updateDarkModeIcons(false);
-      showToast('ডার্ক মোড', 'ডার্ক মোড নিষ্ক্রিয় করা হয়েছে।', 'info');
     } else {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
       localStorage.setItem('theme', 'dark');
       updateDarkModeIcons(true);
-      showToast('ডার্ক মোড', 'ডার্ক মোড সক্রিয় করা হয়েছে।', 'info');
     }
   };
   
   if (els.darkModeToggle) {
     els.darkModeToggle.addEventListener('click', toggleAction);
-  }
-  if (els.mobileDarkModeToggle) {
-    els.mobileDarkModeToggle.addEventListener('click', toggleAction);
   }
 }
 
