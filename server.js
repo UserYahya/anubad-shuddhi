@@ -775,7 +775,10 @@ app.post('/api/correct', requireAuth, async (req, res) => {
 CRITICAL RULES:
 1. In case of complex or convoluted sentences, you should break them down into multiple shorter, simpler sentences to keep the flow natural, clear, and readable.
 2. For Wikilinks with suffixes (e.g., [[নজরুল]]-এর or [[নজরুল]]এর or [[নজরুল]]কে), do NOT write them as [[নজরুল]]-Suffix. Instead, format them beautifully inside the brackets as [[নজরুল|নজরুলের]] or [[নজরুল|নজরুলকে]]. Keep the link target identical but adjust the display text to include the suffixes naturally.
-3. You must perfectly preserve ALL other Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.`;
+3. You must perfectly preserve ALL other Wikitext markup exactly as it appears in the original text. Do not translate, alter, or remove templates {{ }}, citations <ref>, HTML tags, categories, or heading markers == ==. Only correct the narrative Bangla prose around the markup.
+4. DO NOT convert Wikitext bold (three single quotes ''') or italic (two single quotes '') into Markdown formatting (such as ** or *). They MUST remain as ''' and '' respectively.
+5. Ensure the output narrative prose is written strictly in standard Bengali (Bangla). Under no circumstances should you output Hindi, Devanagari, or other non-Bangla characters in the corrected sentences (except for keeping English reference/citation parameters or proper nouns inside references intact).`;
+
 
       console.log(`[Gemini SDK] Sending translation request using model: ${targetModel}...`);
       
