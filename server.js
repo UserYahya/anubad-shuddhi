@@ -828,9 +828,9 @@ CRITICAL RULES:
   }
 });
 
-//Function to remove {{যান্ত্রিক অনুবাদ}}" and "{{রুক্ষ অনুবাদ}} tags from wikitext
+//Function to remove {{যান্ত্রিক অনুবাদ}} and {{রুক্ষ অনুবাদ}} tags (including inner parameters) from wikitext
 function removeTranslationTags(str) {
-  return str.replace(/\{\{(যান্ত্রিক অনুবাদ|রুক্ষ অনুবাদ)\}\}/g, '').trim();
+  return str.replace(/\{\{(যান্ত্রিক অনুবাদ|রুক্ষ অনুবাদ)(\|[^}]+)?\}\}/g, '').trim();
 }
 
 
@@ -987,15 +987,20 @@ app.post('/api/publish', requireAuth, async (req, res) => {
   }
 });
 
-// Run Server
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`  Anubad Shuddhi Express Server started successfully!   `);
-  console.log(`  Running locally on: http://localhost:${PORT}        `);
-  if (isMockOAuthEnabled()) {
-    console.log(`  MOCK OAUTH mode is ENABLED (Local Sandbox).       `);
-  } else {
-    console.log(`  REAL OAUTH mode is ENABLED using Meta-Wiki.       `);
-  }
-  console.log(`====================================================`);
-});
+// Run Server if executed directly
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+if (isMain) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`  Anubad Shuddhi Express Server started successfully!   `);
+    console.log(`  Running locally on: http://localhost:${PORT}        `);
+    if (isMockOAuthEnabled()) {
+      console.log(`  MOCK OAUTH mode is ENABLED (Local Sandbox).       `);
+    } else {
+      console.log(`  REAL OAUTH mode is ENABLED using Meta-Wiki.       `);
+    }
+    console.log(`====================================================`);
+  });
+}
+
+export { removeTranslationTags };
