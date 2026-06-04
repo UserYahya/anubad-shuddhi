@@ -301,6 +301,42 @@ app.get('/auth/logout', (req, res) => {
   });
 });
 
+// Helper function to refresh MediaWiki OAuth 2.0 Access Token
+async function refreshOAuthToken(req) {
+  if (!req.session.oauthRefreshToken) {
+    throw new Error('No refresh token available in session.');
+  }
+
+  console.log(`[Auth] Attempting to refresh OAuth token for user: ${req.session.username}...`);
+
+  const tokenUrl = 'https://meta.wikimedia.org/w/rest.php/oauth2/access_token';
+  const params = new URLSearchParams();
+  params.append('grant_type', 'refresh_token');
+  params.append('refresh_token', req.session.oauthRefreshToken);
+  params.append('client_id', process.env.WIKIMEDIA_CLIENT_ID);
+  params.append('client_secret', process.env.WIKIMEDIA_CLIENT_SECRET);
+
+  const tokenResponse = await axios.post(tokenUrl, params, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  });
+
+  const { access_token, refresh_token } = tokenResponse.data;
+  if (!access_token) {
+    throw new Error('Failed to retrieve access token from refresh response.');
+  }
+
+  req.session.oauthToken = access_token;
+  if (refresh_token) {
+    req.session.oauthRefreshToken = refresh_token;
+  }
+
+  console.log(`[Auth] OAuth token successfully refreshed for user: ${req.session.username}`);
+  return access_token;
+}
+
+
 // ==========================================
 // 2. GEMINI API KEY MANAGEMENT
 // ==========================================
@@ -890,73 +926,114 @@ app.post('/api/publish', requireAuth, async (req, res) => {
 
   // Real Edit Flow on Bangla Wikipedia / Wikimedia Projects
   try {
-    const authHeaders = {
-      'Authorization': `Bearer ${oauthToken}`,
-      'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
-    };
+    let currentToken = oauthToken;
+    let attempts = 0;
+    const maxAttempts = 2;
+    let editResult = null;
 
-    console.log(`[Wikipedia Proxy] Requesting CSRF Token for page edit: "${title}"...`);
-    
-    // Step 1: Request CSRF Token
-    const tokenResponse = await axios.get(wikiUrl, {
-      params: {
-        action: 'query',
-        meta: 'tokens',
-        type: 'csrf',
-        format: 'json'
-      },
-      headers: authHeaders
-    });
+    while (attempts < maxAttempts) {
+      try {
+        const authHeaders = {
+          'Authorization': `Bearer ${currentToken}`,
+          'User-Agent': 'AnubadShuddhiTranslationHelper/1.0 (https://github.com/UserYahya/anubad-shuddhi)'
+        };
 
-    const csrfToken = tokenResponse.data?.query?.tokens?.csrftoken;
-    if (!csrfToken || csrfToken === '+\\') {
-      return res.status(403).json({ error: 'Invalid or missing CSRF token. The user might not have edit permissions or the session expired.' });
-    }
+        console.log(`[Wikipedia Proxy] [Attempt ${attempts + 1}] Requesting CSRF Token for page edit: "${title}"...`);
+        
+        // Step 1: Request CSRF Token
+        const tokenResponse = await axios.get(wikiUrl, {
+          params: {
+            action: 'query',
+            meta: 'tokens',
+            type: 'csrf',
+            format: 'json'
+          },
+          headers: authHeaders
+        });
 
-    console.log('[Wikipedia Proxy] CSRF Token fetched successfully. Initiating page edit...');
-
-    // Step 2: Perform the edit (Post with URL-encoded parameters to avoid mediawiki API structure blocks)
-    const editParams = new URLSearchParams();
-    editParams.append('action', 'edit');
-    editParams.append('title', title);
-    editParams.append('text', wikitext);
-    editParams.append('summary', editSummary);
-    editParams.append('token', csrfToken);
-    editParams.append('format', 'json');
-
-    // Add revision markers if present to check for edit conflicts
-    if (baserevisionid) {
-      editParams.append('baserevisionid', baserevisionid);
-    }
-    if (basetimestamp) {
-      editParams.append('basetimestamp', basetimestamp);
-    }
-
-    const editResponse = await axios.post(wikiUrl, editParams, {
-      headers: {
-        ...authHeaders,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    const editResult = editResponse.data?.edit;
-
-    if (!editResult) {
-      const errorDetails = editResponse.data?.error;
-      console.error('[Wikipedia Proxy] Edit failed with response:', editResponse.data);
-
-      if (errorDetails) {
-        if (errorDetails.code === 'editconflict') {
-          return res.status(409).json({ 
-            error: 'Edit conflict detected! Someone else has modified this article while you were editing. Please fetch the article again to incorporate their changes.' 
-          });
+        const csrfToken = tokenResponse.data?.query?.tokens?.csrftoken;
+        if (!csrfToken || csrfToken === '+\\') {
+          // Throw an error to trigger refresh token if available
+          const tokenErr = new Error('Invalid or missing CSRF token (Anonymous session).');
+          tokenErr.response = { status: 401 };
+          throw tokenErr;
         }
-        return res.status(400).json({ error: `Wikipedia edit failed: ${errorDetails.info} (${errorDetails.code})` });
+
+        console.log(`[Wikipedia Proxy] [Attempt ${attempts + 1}] CSRF Token fetched successfully. Initiating page edit...`);
+
+        // Step 2: Perform the edit (Post with URL-encoded parameters to avoid mediawiki API structure blocks)
+        const editParams = new URLSearchParams();
+        editParams.append('action', 'edit');
+        editParams.append('title', title);
+        editParams.append('text', wikitext);
+        editParams.append('summary', editSummary);
+        editParams.append('token', csrfToken);
+        editParams.append('format', 'json');
+
+        // Add revision markers if present to check for edit conflicts
+        if (baserevisionid) {
+          editParams.append('baserevisionid', baserevisionid);
+        }
+        if (basetimestamp) {
+          editParams.append('basetimestamp', basetimestamp);
+        }
+
+        const editResponse = await axios.post(wikiUrl, editParams, {
+          headers: {
+            ...authHeaders,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        editResult = editResponse.data?.edit;
+
+        if (!editResult) {
+          const errorDetails = editResponse.data?.error;
+          console.error('[Wikipedia Proxy] Edit failed with response:', editResponse.data);
+
+          if (errorDetails) {
+            if (errorDetails.code === 'editconflict') {
+              return res.status(409).json({ 
+                error: 'Edit conflict detected! Someone else has modified this article while you were editing. Please fetch the article again to incorporate their changes.' 
+              });
+            }
+            // Some error codes might be authorization/permission related
+            if (errorDetails.code === 'mwoauth-invalid-authorization' || errorDetails.code === 'permissiondenied') {
+              const editErr = new Error(`Wikipedia edit failed: ${errorDetails.info} (${errorDetails.code})`);
+              editErr.response = { status: 401, data: editResponse.data };
+              throw editErr;
+            }
+            return res.status(400).json({ error: `Wikipedia edit failed: ${errorDetails.info} (${errorDetails.code})` });
+          }
+          return res.status(500).json({ error: 'Failed to commit edit. Wikipedia returned an unexpected response structure.' });
+        }
+
+        // If we succeeded and did not throw, break the retry loop
+        break;
+
+      } catch (err) {
+        attempts++;
+        const isAuthError = err.response?.status === 401 || 
+                            (err.response?.status === 400 && err.response?.data?.error === 'mwoauth-invalid-authorization');
+
+        if (isAuthError && req.session.oauthRefreshToken && attempts < maxAttempts) {
+          console.log(`[Wikipedia Proxy] Auth error (401) encountered. Attempting to refresh OAuth token...`);
+          try {
+            currentToken = await refreshOAuthToken(req);
+            // Loop continues and retries with new currentToken
+            continue;
+          } catch (refreshErr) {
+            console.error('[Wikipedia Proxy] Failed to refresh OAuth token:', refreshErr.message);
+            throw refreshErr;
+          }
+        } else {
+          // Propagate error to outer catch block
+          throw err;
+        }
       }
-      return res.status(500).json({ error: 'Failed to commit edit. Wikipedia returned an unexpected response structure.' });
     }
 
-    if (editResult.result === 'Success') {
+    if (editResult && editResult.result === 'Success') {
       console.log(`[Wikipedia Proxy] Successfully published edit to "${title}". New RevID: ${editResult.newrevid}`);
       
       // Increment server-side user published statistics database
@@ -977,13 +1054,14 @@ app.post('/api/publish', requireAuth, async (req, res) => {
         }
       });
     } else {
-      console.warn('[Wikipedia Proxy] Unexpected edit result status:', editResult.result);
-      return res.status(400).json({ error: `Wikipedia returned unexpected edit status: ${editResult.result}` });
+      console.warn('[Wikipedia Proxy] Unexpected edit result status:', editResult?.result);
+      return res.status(400).json({ error: `Wikipedia returned unexpected edit status: ${editResult?.result || 'Unknown'}` });
     }
 
   } catch (err) {
     console.error('[Wikipedia Publish Error]', err.response?.data || err.message);
-    res.status(500).json({ error: `Failed to publish changes to Wikipedia: ${err.message}` });
+    const statusCode = (err.response?.status === 401 || err.response?.status === 403) ? err.response.status : 500;
+    res.status(statusCode).json({ error: `Failed to publish changes to Wikipedia: ${err.message}` });
   }
 });
 
