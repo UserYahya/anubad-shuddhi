@@ -22,3 +22,7 @@ Thumbs.db
 # Unit test files (run local only)
 test_removeTranslationTags.js
 
+# Local runtime data/caches (auto-generated)
+translation_cache.json
+active_drafts.json
+user_stats.json
