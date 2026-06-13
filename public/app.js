@@ -655,9 +655,10 @@ function updateHighlights() {
   // Regex matches characters that are NOT:
   // - ASCII/English: \x00-\x7F
   // - Bengali script: \u0980-\u09FF
+  // - Bengali full stops (dari, double dari): \u0964\u0965
   // - Unicode whitespace/ZWSP/ZWJ/ZWNJ: \u200B-\u200D\u200C\uFEFF\u00A0
   // - Common punctuation (quotes, dashes, minus, bullets): \u2010-\u2015\u2018-\u201F\u2022\u2026\u2212
-  const regex = /[^\x00-\x7F\u0980-\u09FF\u200B-\u200D\u200C\uFEFF\u00A0\u2010-\u2015\u2018-\u201F\u2022\u2026\u2212]/g;
+  const regex = /[^\x00-\x7F\u0980-\u09FF\u0964\u0965\u200B-\u200D\u200C\uFEFF\u00A0\u2010-\u2015\u2018-\u201F\u2022\u2026\u2212]/g;
 
   const matches = text.match(regex) || [];
   const count = matches.length;
