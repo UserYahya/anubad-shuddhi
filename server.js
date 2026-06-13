@@ -24,16 +24,46 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure Sessions (In-memory store, secure session options)
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'anubadshuddhi_default_fallback_secret_998877',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true if deploying with HTTPS
+    secure: process.env.NODE_ENV === 'production', // Set to true if deploying with HTTPS in production
     httpOnly: true,
+    sameSite: 'lax', // CSRF mitigation
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
 }));
+
+// Simple in-memory rate limiter middleware to prevent DoS spams on live Toolforge instances
+const rateLimits = new Map();
+function rateLimiter(limitCount, durationMs) {
+  return (req, res, next) => {
+    // Skip if running in local sandbox mock testing
+    if (req.session?.isMock) {
+      return next();
+    }
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const now = Date.now();
+    
+    if (!rateLimits.has(ip)) {
+      rateLimits.set(ip, []);
+    }
+    
+    const timestamps = rateLimits.get(ip).filter(t => now - t < durationMs);
+    timestamps.push(now);
+    rateLimits.set(ip, timestamps);
+    
+    if (timestamps.length > limitCount) {
+      console.warn(`[Security] Rate limit exceeded for IP: ${ip} on route: ${req.originalUrl}`);
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    
+    next();
+  };
+}
 
 // Helper to determine if we are in Mock OAuth mode
 const isMockOAuthEnabled = () => {
@@ -342,7 +372,7 @@ async function refreshOAuthToken(req) {
 // ==========================================
 
 // Save Gemini Key in Ephemeral Session
-app.post('/api/key/save', requireAuth, (req, res) => {
+app.post('/api/key/save', requireAuth, rateLimiter(20, 60000), (req, res) => {
   const { apiKey } = req.body;
   if (!apiKey || apiKey.trim() === '') {
     return res.status(400).json({ error: 'API key is required.' });
@@ -705,7 +735,7 @@ app.post('/api/preview', requireAuth, async (req, res) => {
 // 4. GEMINI API CORRECTION GATEWAY
 // ==========================================
 
-app.post('/api/correct', requireAuth, async (req, res) => {
+app.post('/api/correct', requireAuth, rateLimiter(10, 60000), async (req, res) => {
   const { wikitext, model, title } = req.body;
   const geminiKey = req.session.geminiKey;
 
@@ -877,7 +907,7 @@ function removeTranslationTags(str) {
 // 5. MEDIAWIKI API WRITE/EDIT PROXY
 // ==========================================
 
-app.post('/api/publish', requireAuth, async (req, res) => {
+app.post('/api/publish', requireAuth, rateLimiter(15, 60000), async (req, res) => {
   const { title, wikitext, baserevisionid, basetimestamp, summary, source } = req.body;
   const isMock = !!req.session.isMock;
   const oauthToken = req.session.oauthToken;

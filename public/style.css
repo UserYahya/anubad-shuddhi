@@ -636,14 +636,26 @@ body.drawer-open {
   height: 100%;
 }
 
-.highlight-backdrop {
+.highlight-backdrop,
+.highlight-textarea {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  padding: 16px !important;
+}
+
+.highlight-backdrop {
   overflow-y: auto;
   overflow-x: hidden;
   white-space: pre-wrap;
@@ -652,31 +664,28 @@ body.drawer-open {
   color: transparent !important;
   background: transparent;
   z-index: 1;
-  box-sizing: border-box;
+  scrollbar-color: transparent transparent; /* Firefox */
 }
 
 .highlight-textarea {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   background: transparent !important;
   z-index: 2;
-  box-sizing: border-box;
 }
 
-/* Hide scrollbars for the backdrop to keep it clean, but synchronize scroll positions */
-.custom-scrollbar-hidden::-webkit-scrollbar {
-  display: none;
+/* Ensure backdrop scrollbar takes up the same layout space in webkit as custom-scrollbar but is transparent */
+.highlight-backdrop::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-.custom-scrollbar-hidden {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+
+.highlight-backdrop::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.highlight-backdrop::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 /* Make sure highlights have a visible background but don't hide the overlaying textarea text */
