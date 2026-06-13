@@ -59,6 +59,10 @@ const els = {
   correctAiBtn: document.getElementById('correctAiBtn'),
   originalWikitext: document.getElementById('originalWikitext'),
   polishedWikitext: document.getElementById('polishedWikitext'),
+  polishedWikitextContainer: document.getElementById('polishedWikitextContainer'),
+  polishedWikitextHighlights: document.getElementById('polishedWikitextHighlights'),
+  foreignCharWarning: document.getElementById('foreignCharWarning'),
+  foreignCharCount: document.getElementById('foreignCharCount'),
   originalCharCount: document.getElementById('originalCharCount'),
   polishedCharCount: document.getElementById('polishedCharCount'),
   polishedWordCount: document.getElementById('polishedWordCount'),
@@ -506,6 +510,7 @@ async function publishToWikipedia() {
     
     els.originalWikitext.value = '';
     els.polishedWikitext.value = '';
+    updateCharCounts();
     safeSetDisabled(els.correctAiBtn, true);
     safeSetDisabled(els.mobileCorrectAiBtn, true);
 
@@ -636,6 +641,58 @@ function renderKeyStatusUI() {
   }
 }
 
+// Check and highlight foreign characters (non-Bengali, non-ASCII/English/punctuation) in the polished editor
+function updateHighlights() {
+  const textarea = els.polishedWikitext;
+  const highlightsDiv = els.polishedWikitextHighlights;
+  const warningBadge = els.foreignCharWarning;
+  const warningCount = els.foreignCharCount;
+
+  if (!textarea || !highlightsDiv) return;
+
+  const text = textarea.value || '';
+
+  // Regex matches characters that are NOT:
+  // - ASCII/English: \x00-\x7F
+  // - Bengali script: \u0980-\u09FF
+  // - Unicode whitespace/ZWSP/ZWJ/ZWNJ: \u200B-\u200D\u200C\uFEFF\u00A0
+  // - Common punctuation (quotes, dashes, minus, bullets): \u2010-\u2015\u2018-\u201F\u2022\u2026\u2212
+  const regex = /[^\x00-\x7F\u0980-\u09FF\u200B-\u200D\u200C\uFEFF\u00A0\u2010-\u2015\u2018-\u201F\u2022\u2026\u2212]/g;
+
+  const matches = text.match(regex) || [];
+  const count = matches.length;
+
+  if (warningBadge && warningCount) {
+    if (count > 0) {
+      warningCount.innerText = `${toBanglaNumber(count)}টি বিদেশী অক্ষর পাওয়া গেছে`;
+      warningBadge.classList.remove('hidden');
+      warningBadge.classList.add('flex');
+      // List unique foreign characters found
+      const uniqueForeign = [...new Set(matches)].join(' ');
+      warningBadge.setAttribute('title', `সনাক্তকৃত বিদেশী অক্ষর: ${uniqueForeign}`);
+    } else {
+      warningBadge.classList.add('hidden');
+      warningBadge.classList.remove('flex');
+    }
+  }
+
+  // Synchronize layout scroll dimensions (so they line up perfectly)
+  highlightsDiv.scrollTop = textarea.scrollTop;
+  highlightsDiv.scrollLeft = textarea.scrollLeft;
+
+  // Escape HTML tags to prevent rendering issues in highlights div
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Highlight foreign characters by wrapping them in mark tags
+  html = html.replace(regex, (m) => `<mark title="বিদেশী অক্ষর: ${m}">${m}</mark>`);
+
+  // Ensure trailing newline has visual padding so spacing matches the textarea
+  highlightsDiv.innerHTML = html + (text.endsWith('\n') ? '\n ' : '');
+}
+
 // Update Character and Word counts on input
 function updateCharCounts() {
   const originalText = els.originalWikitext.value || '';
@@ -650,6 +707,8 @@ function updateCharCounts() {
   els.originalCharCount.innerText = `${toBanglaNumber(origChars)} অক্ষর`;
   els.polishedCharCount.innerText = `${toBanglaNumber(polChars)} অক্ষর`;
   els.polishedWordCount.innerText = `${toBanglaNumber(polWords)} শব্দ`;
+
+  updateHighlights();
 }
 
 // ==========================================
@@ -670,6 +729,12 @@ els.originalWikitext.addEventListener('scroll', () => {
 });
 
 els.polishedWikitext.addEventListener('scroll', () => {
+  // Synchronize highlights overlay scroll position
+  if (els.polishedWikitextHighlights) {
+    els.polishedWikitextHighlights.scrollTop = els.polishedWikitext.scrollTop;
+    els.polishedWikitextHighlights.scrollLeft = els.polishedWikitext.scrollLeft;
+  }
+
   if (isScrollingLeft) {
     isScrollingLeft = false;
     return;
@@ -1104,6 +1169,9 @@ if (els.btnModeEditor && els.btnModePreview) {
     els.btnModePreview.classList.add('text-on-surface-variant');
     
     els.polishedWikitext.classList.remove('hidden');
+    if (els.polishedWikitextContainer) {
+      els.polishedWikitextContainer.classList.remove('hidden');
+    }
     if (els.inlinePreview) {
       els.inlinePreview.classList.add('hidden');
     }
@@ -1116,6 +1184,9 @@ if (els.btnModeEditor && els.btnModePreview) {
     els.btnModeEditor.classList.add('text-on-surface-variant');
     
     els.polishedWikitext.classList.add('hidden');
+    if (els.polishedWikitextContainer) {
+      els.polishedWikitextContainer.classList.add('hidden');
+    }
     const previewContainer = els.inlinePreview;
     const previewContent = els.inlinePreviewContent;
     if (previewContainer) {
