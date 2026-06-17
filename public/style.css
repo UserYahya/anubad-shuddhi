@@ -8,14 +8,14 @@
   --secondary: #00af89;           /* Wikipedia Success Green */
   --destructive-red: #d33333;
   --error: #ba1a1a;
-  --surface-background: #f8f9fa;  /* Low glare canvas background */
-  --border-subtle: #a2a9b1;       /* Hairline Wikipedia border gray */
-  --text-main: #202122;           /* Charcoal body text */
-  --text-muted: #72777d;          /* Wikipedia tertiary gray */
-  --font-ui: 'Inter', 'Hind Siliguri', sans-serif;
+  --surface-background: #f8f9fa;
+  --border-subtle: #a2a9b1;
+  --text-main: #202122;
+  --text-muted: #72777d;
+  --font-ui: 'Inter', 'Siyam Rupali', 'Kalpurush', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
-  --border-radius-lg: 8px;        /* Soft but stable corners */
+  --border-radius-lg: 8px;
   --border-radius-md: 6px;
   --border-radius-sm: 4px;
   --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -237,7 +237,7 @@
 .mw-parser-output h2, 
 .mw-parser-output h3, 
 .mw-parser-output h4 {
-  font-family: "Hind Siliguri", "Inter", sans-serif;
+  font-family: "Siyam Rupali", "Kalpurush", "Inter", sans-serif;
 }
 
 .mw-parser-output p {
